@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VALENTI AI | Premium Voice-Activated Couture</title>
+    <meta name="description" content="AI-powered voice shopping experience with NVIDIA NIM, CrewAI, and OmniVoice. Browse premium fashion collections with zero-touch voice control.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Main Style Sheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Custom Cursor -->
+    <div class="custom-cursor" id="cursor-dot"></div>
+    <div class="custom-cursor-ring" id="cursor-ring"></div>
+
+    <!-- Ambient Background -->
+    <div class="glow-container">
+        <div class="glow-orb" id="orb-1"></div>
+        <div class="glow-orb" id="orb-2"></div>
+        <div class="glow-orb" id="orb-3"></div>
+    </div>
+
+    <!-- Scroll Progress Indicator -->
+    <div class="scroll-progress" id="scroll-progress"></div>
+
+    <!-- Header Navigation -->
+    <header>
+        <nav class="navbar">
+            <div class="logo">
+                <span class="brand-name">VALENTI</span>
+                <span class="badge">AI COUTURE</span>
+            </div>
+            
+            <div class="nav-right">
+                <div class="assistant-badge" id="assistant-badge">
+                    <span class="status-indicator idle"></span>
+                    <span class="status-text">Voice Agent Online</span>
+                </div>
+                <button class="cart-btn" id="cart-toggle">
+                    <i class="fa-solid fa-bag-shopping"></i>
+                    <span class="cart-count" id="cart-count">0</span>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content Layout -->
+    <main class="store-container">
+        <!-- Hero Section with 3D Parallax -->
+        <section class="hero-section" id="hero">
+            <div class="hero-parallax-bg"></div>
+            <div class="hero-content anim-reveal">
+                <p class="hero-kicker anim-reveal-child"><i class="fa-solid fa-wand-magic-sparkles"></i> AI-Powered Fashion Intelligence</p>
+                <h1 class="anim-reveal-child">Speak to Your <br><span class="gradient-text">Wardrobe</span></h1>
+                <p class="hero-desc anim-reveal-child">Welcome to a zero-touch shopping experience. Tap the microphone and ask our AI stylist for recommendations, add items to your cart, or check out—all with just your voice.</p>
+                <div class="hero-actions anim-reveal-child">
+                    <button class="btn btn-primary" onclick="scrollToCatalog()">
+                        <i class="fa-solid fa-arrow-down"></i> Explore Collections
+                    </button>
+                    <button class="btn btn-secondary" onclick="activateVoiceAssistant()">
+                        <i class="fa-solid fa-microphone"></i> Start Voice Chat
+                    </button>
+                </div>
+                <div class="hero-stats anim-reveal-child">
+                    <div class="stat"><span class="stat-num" data-target="50">0</span><span class="stat-label">Products</span></div>
+                    <div class="stat"><span class="stat-num" data-target="10">0</span><span class="stat-label">Categories</span></div>
+                    <div class="stat"><span class="stat-num" data-target="3">0</span><span class="stat-label">AI Agents</span></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Horizontal Marquee -->
+        <div class="marquee-strip">
+            <div class="marquee-track">
+                <span>SHIRTS</span><span>•</span><span>WATCHES</span><span>•</span>
+                <span>PANTS</span><span>•</span><span>SHOES</span><span>•</span>
+                <span>JACKETS</span><span>•</span><span>BAGS</span><span>•</span>
+                <span>HATS</span><span>•</span><span>SUNGLASSES</span><span>•</span>
+                <span>BELTS</span><span>•</span><span>SOCKS</span><span>•</span>
+                <span>SHIRTS</span><span>•</span><span>WATCHES</span><span>•</span>
+                <span>PANTS</span><span>•</span><span>SHOES</span><span>•</span>
+                <span>JACKETS</span><span>•</span><span>BAGS</span><span>•</span>
+                <span>HATS</span><span>•</span><span>SUNGLASSES</span><span>•</span>
+                <span>BELTS</span><span>•</span><span>SOCKS</span><span>•</span>
+            </div>
+        </div>
+
+        <!-- Category Showcase Section (3D Cards) -->
+        <section class="categories-section" id="categories">
+            <div class="section-title anim-reveal">
+                <p class="section-kicker anim-reveal-child">Browse by Category</p>
+                <h2 class="anim-reveal-child">Curated <span class="gradient-text">Collections</span></h2>
+                <div class="underline anim-reveal-child"></div>
+            </div>
+            <div class="category-showcase" id="category-showcase">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+
+        <!-- Catalog Section -->
+        <section class="catalog-section" id="catalog">
+            <div class="section-title anim-reveal">
+                <p class="section-kicker anim-reveal-child">Full Inventory</p>
+                <h2 class="anim-reveal-child">All <span class="gradient-text">Products</span></h2>
+                <div class="underline anim-reveal-child"></div>
+            </div>
+
+            <div class="catalog-layout">
+                <!-- Sidebar Categories -->
+                <aside class="sidebar">
+                    <h3>Filter</h3>
+                    <ul class="category-list" id="category-filters">
+                        <li class="active" data-category="all">
+                            <i class="fa-solid fa-border-all"></i> All Products
+                        </li>
+                        <li data-category="shirt"><i class="fa-solid fa-shirt"></i> Shirts</li>
+                        <li data-category="pant"><i class="fa-solid fa-socks"></i> Pants</li>
+                        <li data-category="watch"><i class="fa-solid fa-clock"></i> Watches</li>
+                        <li data-category="shoes"><i class="fa-solid fa-shoe-prints"></i> Shoes</li>
+                        <li data-category="jacket"><i class="fa-solid fa-person-shelter"></i> Jackets</li>
+                        <li data-category="bag"><i class="fa-solid fa-briefcase"></i> Bags</li>
+                        <li data-category="hat"><i class="fa-solid fa-hat-cowboy"></i> Hats</li>
+                        <li data-category="sunglasses"><i class="fa-solid fa-glasses"></i> Sunglasses</li>
+                        <li data-category="belt"><i class="fa-solid fa-grip-lines"></i> Belts</li>
+                        <li data-category="socks"><i class="fa-solid fa-socks"></i> Socks</li>
+                    </ul>
+                </aside>
+
+                <!-- Product Grid -->
+                <div class="product-area">
+                    <div class="product-grid" id="product-grid">
+                        <div class="loading-spinner">
+                            <i class="fa-solid fa-circle-notch fa-spin"></i> Loading Valenti Collections...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Shopping Cart Modal Sidebar -->
+    <div class="cart-sidebar" id="cart-sidebar">
+        <div class="cart-header">
+            <h3>Your Shopping Cart</h3>
+            <button class="close-cart" id="close-cart"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="cart-items" id="cart-items-container">
+            <div class="empty-cart">
+                <i class="fa-solid fa-bag-shopping"></i>
+                <p>Your cart is empty.</p>
+                <p class="hint">Ask the AI: "Add Breeze Linen Summer Shirt to my cart"</p>
+            </div>
+        </div>
+        <div class="cart-footer">
+            <div class="total-row">
+                <span>Subtotal:</span>
+                <span class="total-price" id="cart-total">$0.00</span>
+            </div>
+            <button class="btn btn-checkout btn-full" id="checkout-btn">Proceed to Checkout</button>
+        </div>
+    </div>
+    <div class="cart-overlay" id="cart-overlay"></div>
+
+    <!-- Floating Voice Assistant Widget -->
+    <div class="voice-assistant-widget" id="voice-widget">
+        <div class="widget-header">
+            <div class="assistant-info">
+                <i class="fa-solid fa-wand-magic-sparkles assistant-icon"></i>
+                <div>
+                    <h4>VALENTI AI Stylist</h4>
+                    <p class="status-sub" id="voice-status">Idle. Click to speak.</p>
+                </div>
+            </div>
+            <button class="minimize-widget" onclick="toggleWidget()"><i class="fa-solid fa-chevron-down"></i></button>
+        </div>
+        
+        <div class="widget-body">
+            <div class="voice-chat-history" id="chat-history">
+                <div class="chat-message bot">
+                    <p>Greetings. I am your personal Valenti style consultant, powered by NVIDIA NIM. How may I customize your wardrobe today?</p>
+                </div>
+            </div>
+
+            <!-- Model Engine Controls Panel -->
+            <div class="engine-controls">
+                <div class="control-row">
+                    <span class="control-label"><i class="fa-solid fa-language"></i> ASR:</span>
+                    <div class="toggle-switch" id="asr-mode-toggle">
+                        <button class="switch-btn active" data-value="online">Cloud</button>
+                        <button class="switch-btn" data-value="offline">Local GPU</button>
+                    </div>
+                </div>
+                <div class="control-row">
+                    <span class="control-label"><i class="fa-solid fa-microphone-lines"></i> TTS:</span>
+                    <div class="toggle-switch" id="tts-mode-toggle">
+                        <button class="switch-btn active" data-value="online">Cloud</button>
+                        <button class="switch-btn" data-value="offline">Local GPU</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="visualizer-container">
+                <canvas id="waveform-canvas"></canvas>
+            </div>
+        </div>
+
+        <div class="widget-footer">
+            <button class="mic-button" id="mic-btn">
+                <i class="fa-solid fa-microphone"></i>
+            </button>
+            <p class="voice-hint">Try: <i>"Show me warm jackets, then add the leather bomber."</i></p>
+        </div>
+    </div>
+
+    <audio id="agent-voice" style="display:none;"></audio>
+
+    <footer class="main-footer">
+        <div class="footer-inner">
+            <p class="footer-brand">VALENTI <span>AI COUTURE</span></p>
+            <p>&copy; 2026 Engineered with NVIDIA NIM, CrewAI, Whisper & OmniVoice.</p>
+        </div>
+    </footer>
+
+    <!-- Main JavaScript Logic -->
+    <script src="app.js"></script>
+</body>
+</html>

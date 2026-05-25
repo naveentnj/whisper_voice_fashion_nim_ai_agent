@@ -1,0 +1,452 @@
+[
+  {
+    "id": "shirt_1",
+    "name": "Breeze Linen Summer Shirt",
+    "price": 59.0,
+    "category": "shirt",
+    "description": "Crafted from 100% organic linen, this breathable shirt keeps you cool and elegant during warm summer days.",
+    "image": "/static/images/shirt/shirt_1.jpg",
+    "stock": 15
+  },
+  {
+    "id": "shirt_2",
+    "name": "Classic Tailored Oxford Shirt",
+    "price": 79.0,
+    "category": "shirt",
+    "description": "An essential timeless wardrobe piece. Tailored from premium cotton weave, offering structured comfort for business or casual wear.",
+    "image": "/static/images/shirt/shirt_2.jpg",
+    "stock": 20
+  },
+  {
+    "id": "shirt_3",
+    "name": "Indigo Denim Workwear Shirt",
+    "price": 89.0,
+    "category": "shirt",
+    "description": "Rugged yet refined. Featuring double-stitch detailing and a wash that matures and gains character with every wear.",
+    "image": "/static/images/shirt/shirt_3.jpg",
+    "stock": 12
+  },
+  {
+    "id": "shirt_4",
+    "name": "Elite Mulberry Silk Shirt",
+    "price": 149.0,
+    "category": "shirt",
+    "description": "Unmatched softness and sheen. Made from top-grade mulberry silk, featuring natural drape and mother-of-pearl buttons.",
+    "image": "/static/images/shirt/shirt_4.jpg",
+    "stock": 8
+  },
+  {
+    "id": "shirt_5",
+    "name": "Timber Flannel Plaid Shirt",
+    "price": 65.0,
+    "category": "shirt",
+    "description": "Ultra-soft double-brushed cotton flannel. Combines heavy-duty warmth with a classic lumberjack plaid pattern.",
+    "image": "/static/images/shirt/shirt_5.jpg",
+    "stock": 18
+  },
+  {
+    "id": "watch_1",
+    "name": "Ascent Minimalist Chronograph",
+    "price": 199.0,
+    "category": "watch",
+    "description": "Sleek, slim, and striking. Designed with a matte-black stainless steel case, sapphire crystal glass, and a genuine leather band.",
+    "image": "/static/images/watch/watch_1.jpg",
+    "stock": 10
+  },
+  {
+    "id": "watch_2",
+    "name": "Apex Smart Active Watch",
+    "price": 249.0,
+    "category": "watch",
+    "description": "A high-performance watch with real-time health tracking, robust GPS capabilities, and a 14-day battery life encased in aerospace titanium.",
+    "image": "/static/images/watch/watch_2.jpg",
+    "stock": 14
+  },
+  {
+    "id": "watch_3",
+    "name": "Heritage Gold Automatic Watch",
+    "price": 399.0,
+    "category": "watch",
+    "description": "Powered entirely by your wrist's motion. Features a stunning skeletal dial exposing the intricate gold-plated mechanical movements.",
+    "image": "/static/images/watch/watch_3.jpg",
+    "stock": 5
+  },
+  {
+    "id": "watch_4",
+    "name": "Voyager GMT Steel Diver",
+    "price": 299.0,
+    "category": "watch",
+    "description": "Water-resistant up to 200m. Heavy-duty brushed steel link band paired with a rotating ceramic bezel and glowing indices.",
+    "image": "/static/images/watch/watch_4.jpg",
+    "stock": 7
+  },
+  {
+    "id": "watch_5",
+    "name": "Eclipse Bauhaus Mesh Watch",
+    "price": 179.0,
+    "category": "watch",
+    "description": "German Bauhaus design principles. Minimal white dial paired with an adjustable steel mesh bracelet for a highly modern look.",
+    "image": "/static/images/watch/watch_5.jpg",
+    "stock": 11
+  },
+  {
+    "id": "pant_1",
+    "name": "Downtown Tailored Chinos",
+    "price": 69.0,
+    "category": "pant",
+    "description": "Flexible stretch-twill cotton. Flat-front tailored structure that transitions effortlessly from office meetings to evening socials.",
+    "image": "/static/images/pant/pant_1.jpg",
+    "stock": 25
+  },
+  {
+    "id": "pant_2",
+    "name": "Signature Raw Selvage Denim",
+    "price": 119.0,
+    "category": "pant",
+    "description": "14oz Japanese raw selvage denim. Tailored to mold and crease uniquely to your body over time. Unwashed, dark indigo.",
+    "image": "/static/images/pant/pant_2.jpg",
+    "stock": 15
+  },
+  {
+    "id": "pant_3",
+    "name": "Nomad Cargo Field Pants",
+    "price": 79.0,
+    "category": "pant",
+    "description": "Durable ripstop weave with water-repellent finish. Equipped with utility pockets and articulated knees for outdoor exploration.",
+    "image": "/static/images/pant/pant_3.jpg",
+    "stock": 14
+  },
+  {
+    "id": "pant_4",
+    "name": "Metropolitan Wool-Blend Trousers",
+    "price": 99.0,
+    "category": "pant",
+    "description": "Fine Merino wool-blend fabric with crease-retention logic. Ideal for clean, tailored formal aesthetics.",
+    "image": "/static/images/pant/pant_4.jpg",
+    "stock": 12
+  },
+  {
+    "id": "pant_5",
+    "name": "CloudSoft Knit Sweatpants",
+    "price": 55.0,
+    "category": "pant",
+    "description": "The ultimate home-comfort essential. Spun from heavy French terry cotton with a soft fleece lining and premium drawstring waist.",
+    "image": "/static/images/pant/pant_5.jpg",
+    "stock": 20
+  },
+  {
+    "id": "shoes_1",
+    "name": "Prestige Leather Derby Loafers",
+    "price": 159.0,
+    "category": "shoes",
+    "description": "Full-grain calfskin leather, hand-stitched details, and a cushioned cork bed that conforms to your foot for long-term comfort.",
+    "image": "/static/images/shoes/shoes_1.jpg",
+    "stock": 8
+  },
+  {
+    "id": "shoes_2",
+    "name": "Rebound Retro Sneakers",
+    "price": 89.0,
+    "category": "shoes",
+    "description": "Inspired by 1980s basketball heritage. Features premium tumbled leather, soft suede panels, and a high-traction vulcanized rubber sole.",
+    "image": "/static/images/shoes/shoes_2.jpg",
+    "stock": 22
+  },
+  {
+    "id": "shoes_3",
+    "name": "Summit Waterproof Trail Boots",
+    "price": 189.0,
+    "category": "shoes",
+    "description": "Built for rugged terrain. Features Gore-Tex waterproofing, a protective steel shank, and high-grip Vibram lugged outsoles.",
+    "image": "/static/images/shoes/shoes_3.jpg",
+    "stock": 6
+  },
+  {
+    "id": "shoes_4",
+    "name": "Elysian Suede Chelsea Boots",
+    "price": 169.0,
+    "category": "shoes",
+    "description": "Crafted from Italian water-resistant suede, featuring elasticated side panels and a durable crepe sole for a refined look.",
+    "image": "/static/images/shoes/shoes_4.jpg",
+    "stock": 9
+  },
+  {
+    "id": "shoes_5",
+    "name": "Aura Lite Running Shoes",
+    "price": 109.0,
+    "category": "shoes",
+    "description": "Seamless, featherlight knit upper with reactive nitrogen-infused foam soles that return maximum energy with every stride.",
+    "image": "/static/images/shoes/shoes_5.jpg",
+    "stock": 16
+  },
+  {
+    "id": "jacket_1",
+    "name": "Legacy Leather Bomber Jacket",
+    "price": 299.0,
+    "category": "jacket",
+    "description": "Heavy-duty full-grain sheepskin leather with a warm ribbed collar and interior satin lining. A classic vintage aesthetic.",
+    "image": "/static/images/jacket/jacket_1.jpg",
+    "stock": 5
+  },
+  {
+    "id": "jacket_2",
+    "name": "StormShield Tech Windbreaker",
+    "price": 129.0,
+    "category": "jacket",
+    "description": "Featuring a triple-layer ripstop membrane, fully sealed waterproof seams, and a multi-point adjustable storm hood.",
+    "image": "/static/images/jacket/jacket_2.jpg",
+    "stock": 14
+  },
+  {
+    "id": "jacket_3",
+    "name": "Hearthside Sherpa-Lined Denim Jacket",
+    "price": 139.0,
+    "category": "jacket",
+    "description": "Thick indigo-washed denim outer shell paired with an incredibly plush, high-pile insulated sherpa fleece lining.",
+    "image": "/static/images/jacket/jacket_3.jpg",
+    "stock": 11
+  },
+  {
+    "id": "jacket_4",
+    "name": "Cityline Double-Breasted Trench Coat",
+    "price": 199.0,
+    "category": "jacket",
+    "description": "Tailored from water-resistant gabardine cotton, complete with storm flaps, a buckled belt, and a vintage checkered lining.",
+    "image": "/static/images/jacket/jacket_4.jpg",
+    "stock": 8
+  },
+  {
+    "id": "jacket_5",
+    "name": "SubZero Heavy Down Parka",
+    "price": 349.0,
+    "category": "jacket",
+    "description": "800-fill power premium goose down insulation. Rated to withstand sub-zero temperatures, finished with a detachable faux-fur trim.",
+    "image": "/static/images/jacket/jacket_5.jpg",
+    "stock": 6
+  },
+  {
+    "id": "bag_1",
+    "name": "Voyage Leather Duffle Bag",
+    "price": 189.0,
+    "category": "bag",
+    "description": "Rich full-grain cowhide leather that develops a gorgeous dark patina. Extremely spacious, ideal for premium weekend travel.",
+    "image": "/static/images/bag/bag_1.jpg",
+    "stock": 7
+  },
+  {
+    "id": "bag_2",
+    "name": "Urbanite Waterproof Commuter Backpack",
+    "price": 99.0,
+    "category": "bag",
+    "description": "1680D ballistic nylon with matte polyurethane coating. Fitted with a padded 16-inch laptop slot and hidden anti-theft pockets.",
+    "image": "/static/images/bag/bag_2.jpg",
+    "stock": 15
+  },
+  {
+    "id": "bag_3",
+    "name": "Vanguard Canvas Messenger Bag",
+    "price": 79.0,
+    "category": "bag",
+    "description": "Waxed 18oz cotton canvas with crazy-horse leather accents. Features quick-access brass buckles for students and professionals.",
+    "image": "/static/images/bag/bag_3.jpg",
+    "stock": 18
+  },
+  {
+    "id": "bag_4",
+    "name": "Luxe Saffiano Leather Tote",
+    "price": 149.0,
+    "category": "bag",
+    "description": "Scratch-resistant cross-grain Saffiano leather. Designed with an elegant, highly structured minimalist workspace silhouette.",
+    "image": "/static/images/bag/bag_4.jpg",
+    "stock": 10
+  },
+  {
+    "id": "bag_5",
+    "name": "Nomad Roll-Top Hiking Pack",
+    "price": 139.0,
+    "category": "bag",
+    "description": "45L expandable lightweight ripstop nylon pack, featuring breathable mesh back support and trekking pole loops.",
+    "image": "/static/images/bag/bag_5.jpg",
+    "stock": 9
+  },
+  {
+    "id": "hat_1",
+    "name": "Garrison Wool Felt Fedora",
+    "price": 75.0,
+    "category": "hat",
+    "description": "100% premium Australian wool felt. Hand-molded teardrop crown and elegant raw-edge brim finished with a leather band.",
+    "image": "/static/images/hat/hat_1.jpg",
+    "stock": 8
+  },
+  {
+    "id": "hat_2",
+    "name": "Vagabond Vintage Corduroy Cap",
+    "price": 29.0,
+    "category": "hat",
+    "description": "8-wale heavy corduroy cotton fabric. Features a relaxed unstructured profile and a self-fabric strap with an antique brass buckle.",
+    "image": "/static/images/hat/hat_2.jpg",
+    "stock": 25
+  },
+  {
+    "id": "hat_3",
+    "name": "Merino Ribbed Slouchy Beanie",
+    "price": 35.0,
+    "category": "hat",
+    "description": "Spun from 100% soft extra-fine Merino wool. Double-layer ribbing ensures lightweight warmth without itching.",
+    "image": "/static/images/hat/hat_3.jpg",
+    "stock": 30
+  },
+  {
+    "id": "hat_4",
+    "name": "Panama Premium Straw Hat",
+    "price": 85.0,
+    "category": "hat",
+    "description": "Genuine hand-woven toquilla straw made in Ecuador. Features a classic black grosgrain ribbon and breathable ventilation weave.",
+    "image": "/static/images/hat/hat_4.jpg",
+    "stock": 6
+  },
+  {
+    "id": "hat_5",
+    "name": "Pro-Fit Athletic Mesh Cap",
+    "price": 25.0,
+    "category": "hat",
+    "description": "Moisture-wicking active fabric with breathable laser-perforated side panels and a flexible, curve-retaining brim.",
+    "image": "/static/images/hat/hat_5.jpg",
+    "stock": 20
+  },
+  {
+    "id": "sunglasses_1",
+    "name": "Silverado Classic Aviators",
+    "price": 129.0,
+    "category": "sunglasses",
+    "description": "Ultra-lightweight titanium wireframe paired with green polarized Carl Zeiss lenses offering absolute 100% UV protection.",
+    "image": "/static/images/sunglasses/sunglasses_1.jpg",
+    "stock": 12
+  },
+  {
+    "id": "sunglasses_2",
+    "name": "Horizon Geometric Acetate Shades",
+    "price": 149.0,
+    "category": "sunglasses",
+    "description": "Bold thick-cut hand-polished tortoiseshell acetate frame, featuring custom gold-tone triple-barrel hardware hinges.",
+    "image": "/static/images/sunglasses/sunglasses_2.jpg",
+    "stock": 9
+  },
+  {
+    "id": "sunglasses_3",
+    "name": "Pacific Round Clubmaster Glasses",
+    "price": 139.0,
+    "category": "sunglasses",
+    "description": "Retro half-frame silhouette combining textured metal rims with custom-molded dark wood temples.",
+    "image": "/static/images/sunglasses/sunglasses_3.jpg",
+    "stock": 10
+  },
+  {
+    "id": "sunglasses_4",
+    "name": "Volt Polarized Sports Wrap",
+    "price": 99.0,
+    "category": "sunglasses",
+    "description": "Impact-resistant shatterproof polycarbonate lenses, wrapped in a flexible TR90 polymer sports frame designed for athletics.",
+    "image": "/static/images/sunglasses/sunglasses_4.jpg",
+    "stock": 15
+  },
+  {
+    "id": "sunglasses_5",
+    "name": "Stellar Cat-Eye Statement Glasses",
+    "price": 159.0,
+    "category": "sunglasses",
+    "description": "A high-fashion oversized vintage cat-eye look. Elegant gradient lenses paired with micro-engraved gold wire details.",
+    "image": "/static/images/sunglasses/sunglasses_5.jpg",
+    "stock": 7
+  },
+  {
+    "id": "belt_1",
+    "name": "Full-Grain Leather Dress Belt",
+    "price": 49.0,
+    "category": "belt",
+    "description": "Cut from a single piece of thick 100% full-grain steerhide leather, finished with a heavy hand-polished steel buckle.",
+    "image": "/static/images/belt/belt_1.jpg",
+    "stock": 18
+  },
+  {
+    "id": "belt_2",
+    "name": "Suede Braided Casual Belt",
+    "price": 45.0,
+    "category": "belt",
+    "description": "Intricately woven Italian calf suede strip. Offers flexible elasticated comfort and a relaxed, smart-casual textured look.",
+    "image": "/static/images/belt/belt_2.jpg",
+    "stock": 20
+  },
+  {
+    "id": "belt_3",
+    "name": "Ranger Bridle Utility Belt",
+    "price": 59.0,
+    "category": "belt",
+    "description": "Extra-durable vegetable-tanned bridle leather, heavy-duty double-prong brass hardware, designed to hold work gear securely.",
+    "image": "/static/images/belt/belt_3.jpg",
+    "stock": 12
+  },
+  {
+    "id": "belt_4",
+    "name": "Luxe Reversible Monogram Belt",
+    "price": 89.0,
+    "category": "belt",
+    "description": "Two belts in one. Rich pebbled black leather on one side, reversing to smooth tan brown leather, secured with a rotating buckle.",
+    "image": "/static/images/belt/belt_4.jpg",
+    "stock": 15
+  },
+  {
+    "id": "belt_5",
+    "name": "Tactical Webbed Nylon Belt",
+    "price": 29.0,
+    "category": "belt",
+    "description": "Military-grade heavy-duty woven nylon webbing paired with a quick-release aerospace aluminum Cobra-style buckle.",
+    "image": "/static/images/belt/belt_5.jpg",
+    "stock": 22
+  },
+  {
+    "id": "socks_1",
+    "name": "Merino Wool Comfort Trail Socks",
+    "price": 19.0,
+    "category": "socks",
+    "description": "Spun from 75% Merino wool with targeted sole cushioning. Excellent moisture-wicking and heat regulation for hiking.",
+    "image": "/static/images/socks/socks_1.jpg",
+    "stock": 35
+  },
+  {
+    "id": "socks_2",
+    "name": "Elysian Bamboo Dress Socks",
+    "price": 15.0,
+    "category": "socks",
+    "description": "Ultra-soft bamboo-derived viscose fiber. Odor-resistant, highly breathable, flat-seam stitch to prevent friction.",
+    "image": "/static/images/socks/socks_2.jpg",
+    "stock": 40
+  },
+  {
+    "id": "socks_3",
+    "name": "Artisan Geometric Crew Socks",
+    "price": 18.0,
+    "category": "socks",
+    "description": "Premium combed long-staple Egyptian cotton featuring a vibrant retro-modern geometric patterned knit.",
+    "image": "/static/images/socks/socks_3.jpg",
+    "stock": 25
+  },
+  {
+    "id": "socks_4",
+    "name": "PowerGrid Quarter Active Socks",
+    "price": 16.0,
+    "category": "socks",
+    "description": "Engineered with compression arch support, breathable mesh top vents, and high-pile heel-strike absorption cushioning.",
+    "image": "/static/images/socks/socks_4.jpg",
+    "stock": 30
+  },
+  {
+    "id": "socks_5",
+    "name": "CloudNine Heavy Cable-Knit Socks",
+    "price": 24.0,
+    "category": "socks",
+    "description": "Chunky extra-warm alpaca wool cable-knit slipper socks. The perfect companion for cozy lounging at home during winters.",
+    "image": "/static/images/socks/socks_5.jpg",
+    "stock": 20
+  }
+]

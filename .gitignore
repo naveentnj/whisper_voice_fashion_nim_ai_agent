@@ -1,0 +1,88 @@
+# ===========================================
+# SECURITY — NEVER COMMIT THESE
+# ===========================================
+.env
+.env.local
+.env.*.local
+# Allow the example template
+!.env.example
+
+# ===========================================
+# Python Virtual Environment & Cache
+# ===========================================
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# ===========================================
+# Large AI Model Files (GB-scale, never push)
+# ===========================================
+*.safetensors
+*.bin
+*.pt
+*.ckpt
+*.gguf
+*.ggml
+
+# Exclude local_voice_models folder CONTENTS, keep the folder itself
+local_voice_models/*
+!local_voice_models/.gitkeep
+
+# ===========================================
+# Downloaded Stock Images (50+ MB)
+# ===========================================
+static/images/*
+!static/images/.gitkeep
+
+# ===========================================
+# Generated Audio Files
+# ===========================================
+static/audio/*
+!static/audio/.gitkeep
+
+# ===========================================
+# HuggingFace / Torch Cache
+# ===========================================
+.cache/
+*.incomplete
+
+# ===========================================
+# Nested git repos (pulled as reference only)
+# The ui-ux-pro-max-skill is added as submodule
+# ===========================================
+# (handled via .gitmodules)
+
+# ===========================================
+# Temp / Diagnostic Scripts
+# ===========================================
+test_nim.py
+check_nim_models.py
+fix_images.py
+
+# ===========================================
+# IDE / OS Artifacts
+# ===========================================
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+
+# ===========================================
+# Logs
+# ===========================================
+*.log
+logs/
