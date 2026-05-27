@@ -207,6 +207,60 @@ async def post_voice_chat(
 
 
 # ─────────────────────────────────────────────────────────────────
+# Raw Voice Test Bench API (No LLM)
+# ─────────────────────────────────────────────────────────────────
+@app.post("/api/test-voice")
+async def post_test_voice(
+    file: UploadFile = File(...)
+):
+    """
+    Pure testing endpoint:
+    1. Transcribes audio strictly via local Whisper
+    2. Synthesizes the transcribed text strictly via local OmniVoice
+    """
+    session_id = str(uuid.uuid4())
+    temp_voice_path = os.path.join(AUDIO_DIR, f"test_input_{session_id}.webm")
+    
+    # Save audio
+    try:
+        content = await file.read()
+        with open(temp_voice_path, "wb") as f:
+            f.write(content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save audio: {e}")
+
+    # Transcribe (Forced Offline)
+    try:
+        transcription = voice.transcribe_audio(temp_voice_path, mode="offline")
+    except Exception as e:
+        if os.path.exists(temp_voice_path):
+            os.remove(temp_voice_path)
+        raise HTTPException(status_code=500, detail=f"Local Whisper failed: {e}")
+    finally:
+        if os.path.exists(temp_voice_path):
+            os.remove(temp_voice_path)
+
+    # Synthesize (Forced Offline)
+    audio_filename = f"test_reply_{session_id}.wav"
+    out_path = os.path.join(AUDIO_DIR, audio_filename)
+    audio_url = None
+    
+    # If silence, provide fallback text to synthesize
+    response_text = transcription if transcription else "I didn't hear anything, but the synthesis is working."
+    
+    try:
+        voice.synthesize_speech(response_text, out_path, mode="offline")
+        audio_url = f"/static/audio/{audio_filename}"
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Local OmniVoice failed: {e}")
+
+    return {
+        "transcription": transcription,
+        "audio_url": audio_url
+    }
+
+
+# ─────────────────────────────────────────────────────────────────
 # Checkout API
 # ─────────────────────────────────────────────────────────────────
 class CheckoutRequest(BaseModel):

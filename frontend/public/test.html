@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Models Test Bench</title>
+    <style>
+        :root {
+            --bg: #060608;
+            --card: #101016;
+            --primary: #9d4edd;
+            --text: #f3f4f6;
+            --border: #2a2a35;
+        }
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 2rem;
+        }
+        .container {
+            background-color: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+        h1 { margin-top: 0; color: var(--primary); }
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 1.5rem 0;
+        }
+        button:hover { filter: brightness(1.2); transform: scale(1.05); }
+        button.recording { background-color: #ff007f; animation: pulse 1s infinite alternate; }
+        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.05); box-shadow: 0 0 15px #ff007f; } }
+        .log-box {
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 1rem;
+            min-height: 80px;
+            text-align: left;
+            font-family: monospace;
+            margin-bottom: 1rem;
+            color: #10b981;
+        }
+        audio { width: 100%; margin-top: 1rem; outline: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Raw Voice Test Bench</h1>
+    <p style="color: #7a7f8e; margin-bottom: 2rem;">
+        This explicitly bypasses CrewAI and the LLM.<br>
+        <strong>1. Whisper</strong> (Local GPU) Transcribes.<br>
+        <strong>2. OmniVoice</strong> (Local GPU) Echoes back.
+    </p>
+
+    <button id="recordBtn">Press to Record</button>
+
+    <div class="log-box">
+        <strong style="color:var(--text)">Whisper Transcription:</strong><br>
+        <span id="transcriptionText">Waiting for audio...</span>
+    </div>
+
+    <div class="log-box" style="color:#3b82f6;">
+        <strong style="color:var(--text)">OmniVoice Output:</strong><br>
+        <span id="audioStatus">Waiting for audio...</span>
+    </div>
+    
+    <audio id="audioPlayer" controls></audio>
+</div>
+
+<script>
+    let mediaRecorder;
+    let audioChunks = [];
+    let isRecording = false;
+
+    const recordBtn = document.getElementById('recordBtn');
+    const transcriptionText = document.getElementById('transcriptionText');
+    const audioStatus = document.getElementById('audioStatus');
+    const audioPlayer = document.getElementById('audioPlayer');
+
+    recordBtn.addEventListener('click', async () => {
+        if (isRecording) {
+            mediaRecorder.stop();
+            isRecording = false;
+            recordBtn.textContent = 'Processing...';
+            recordBtn.classList.remove('recording');
+        } else {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = e => {
+                    if (e.data.size > 0) audioChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    await sendAudio(audioBlob);
+                    stream.getTracks().forEach(t => t.stop());
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                recordBtn.textContent = 'Stop Recording';
+                recordBtn.classList.add('recording');
+                transcriptionText.textContent = 'Recording...';
+                audioStatus.textContent = 'Waiting...';
+            } catch (err) {
+                alert('Microphone access denied or failed: ' + err.message);
+            }
+        }
+    });
+
+    async function sendAudio(blob) {
+        const formData = new FormData();
+        formData.append('file', blob, 'test.webm');
+
+        try {
+            transcriptionText.textContent = 'Running Local Whisper...';
+            
+            // Note: Since this file runs on the Vite dev server (port 5173),
+            // requests to /api are proxied to FastAPI (port 8000) automatically!
+            const res = await fetch('/api/test-voice', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+
+            const data = await res.json();
+            
+            transcriptionText.textContent = data.transcription || "[Silence detected]";
+            audioStatus.textContent = "OmniVoice synthesis complete. Playing audio...";
+            
+            if (data.audio_url) {
+                audioPlayer.src = data.audio_url;
+                audioPlayer.play();
+            }
+
+            recordBtn.textContent = 'Press to Record Again';
+        } catch (err) {
+            console.error(err);
+            transcriptionText.textContent = 'Error: ' + err.message;
+            audioStatus.textContent = 'Failed.';
+            recordBtn.textContent = 'Error. Try Again';
+        }
+    }
+</script>
+
+</body>
+</html>

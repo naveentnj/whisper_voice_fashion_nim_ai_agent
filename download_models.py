@@ -90,12 +90,19 @@ def download_whisper():
             local_dir            = str(WHISPER_DIR),
             local_dir_use_symlinks = False,        # Windows-safe: copies files, no symlinks
             token                = HF_TOKEN,
-            ignore_patterns      = [               # Skip non-PyTorch weights to save space
-                "*.msgpack",
+            ignore_patterns      = [
+                # ── Skip redundant FP32 shards (large, not used by transformers) ──
+                "model.fp32-*.safetensors",        # ~3.26 GB sharded FP32 — NOT needed
+                "pytorch_model.fp32-*.bin",        # Same weights, old .bin format
+                # ── Skip old pytorch .bin format (safetensors is used instead) ──
+                "pytorch_model.bin",               # ~3.09 GB — replaced by model.safetensors
+                # ── Skip TF / Flax / JAX / ONNX formats ──
+                "*.msgpack",                       # Flax weights
                 "flax_model*",
                 "tf_model*",
                 "rust_model*",
                 "onnx/*",
+                # Result: only downloads model.safetensors (~3.09 GB) + configs (~4 MB)
             ],
         )
 

@@ -1,8 +1,8 @@
 # VALENTI AI | Premium Voice-Activated Couture Storefront
 
-Valenti AI is a modern, dark-themed, glassmorphic luxury digital storefront featuring a zero-touch voice-control assistant. Built with an optimized hybrid design, it allows you to explore, select, and purchase premium clothing and accessories using only your natural voice.
+Valenti AI is a modern, dark-themed, glassmorphic luxury digital storefront featuring a zero-touch voice-control assistant. It has been built with an elegant "UI UX Pro Max" React frontend and a powerful Python AI backend to allow you to explore, select, and purchase premium clothing and accessories using only your natural voice.
 
-The system is coordinated by a local **FastAPI** backend that acts as the dispatch hub for a **CrewAI** multi-agent workflow powered by advanced **NVIDIA NIM LLMs**, transcribes audio inputs via cloud-hosted **Whisper-large-v3**, and responds in real-time with spoken answers synthesized by local GPU-accelerated **OmniVoice**.
+The system is coordinated by a **FastAPI** backend that acts as the dispatch hub for a **CrewAI** multi-agent workflow powered by **NVIDIA NIM LLMs**. It transcribes audio inputs via **Whisper-large-v3** and responds in real-time with spoken answers synthesized by **OmniVoice**. Both voice models can be run either entirely offline (on your local GPU) or via cloud APIs.
 
 ---
 
@@ -10,39 +10,34 @@ The system is coordinated by a local **FastAPI** backend that acts as the dispat
 
 ```mermaid
 graph TD
-    A[Storefront UI - HTML/CSS/JS] -->|Record WebM Audio| B[FastAPI Backend - main.py]
-    B -->|Submit Audio Binary| C[Hugging Face Serverless API]
-    C -->|Whisper-large-v3 Transcription| B
-    B -->|Transcribed Text + Cart| D[CrewAI Agent Coordinator]
-    D -->|NVIDIA NIM API - ChatNVIDIA| E[nvidia/llama-3.1-nemotron-70b-instruct]
-    E -->|Execute Custom Tooling| F[products.json Database & Shopping Cart]
+    A[React/Vite Frontend Node.js] -->|Record WebM Audio| B[FastAPI Backend Python]
+    B -->|Local GPU / Cloud API| C[Whisper-large-v3 Transcription]
+    C -->|Transcribed Text + Cart| D[CrewAI Agent Coordinator]
+    D -->|NVIDIA NIM API| E[meta/llama-3.1-70b-instruct]
+    E -->|Execute Custom Tooling| F[MongoDB Database & Shopping Cart]
     D -->|Text Response + Updated Cart| B
-    B -->|Text Response| G[Local OmniVoice TTS Engine]
+    B -->|Local GPU / Cloud API| G[OmniVoice TTS Engine]
     G -->|Synthesized WAV Audio| B
     B -->|JSON: Transcript, Cart, WAV URL| A
-    A -->|Web Audio API Playback + Wave Visualizer| A
+    A -->|Web Audio Playback + Wave Visualizer| A
 ```
 
-1. **Client Core**: Vanilla HTML5, premium custom glassmorphic CSS animations, canvas-based audio wave visualizations, and native JavaScript managing state, MediaRecorder mic capture, and Web Audio API playback.
-2. **Backend Hub**: **FastAPI** serving static assets and hosting real-time WebSocket/REST endpoints.
-3. **ASR Module**: Cloud-hosted **Whisper-large-v3** via serverless APIs (0MB local VRAM footprint).
-4. **TTS Module**: Local **OmniVoice** running fully offline on your GPU, enabling zero-shot voice design for elegant, natural vocal synthesis.
-5. **Agentic System**: **CrewAI** orchestrating two highly tailored agents:
-   * **Elite Personal Fashion Consultant**: Searches catalog inventory and tailors luxury clothing recommendations.
-   * **Meticulous Order Operations Manager**: Manipulates quantities in the user's active cart and completes checkouts.
-6. **Agent Brain**: **NVIDIA NIM** LLM endpoint running `nvidia/llama-3.1-nemotron-70b-instruct` for outstanding zero-shot instruction following and perfect multi-tool execution.
+1. **Client Core**: Built with **React** & **Vite** (Node.js), utilizing `framer-motion` (Motion V12) for 3D tilt interactions, liquid glass animations, and deep OLED styling.
+2. **Backend Hub**: **FastAPI** serving real-time REST endpoints.
+3. **Database**: **MongoDB** integration (using `pymongo`) for syncing products, cart tracking, and order persistence (with automatic localhost failover).
+4. **ASR Module**: **Whisper-large-v3**. Can be toggled between offline (GPU) and online modes.
+5. **TTS Module**: **OmniVoice**. Can be toggled between offline (GPU) and online modes.
+6. **Agentic System**: **CrewAI** orchestrating two highly tailored agents (Fashion Consultant & Operations Manager) using **NVIDIA NIM LLMs** for tool execution.
 
 ---
 
 ## 5060 Ti GPU & VRAM Memory Management
 
-To ensure both voice models and the agent system run smoothly on an **NVIDIA 5060 Ti** (usually 8GB–12GB VRAM) without memory exhaust crashes or sluggishness, we engineered a smart **hybrid execution model**:
+To ensure both voice models and the agent system run smoothly on an **NVIDIA 5060 Ti** (8GB-16GB VRAM):
 
-* **Cloud-Side (0MB VRAM):**
-  * **Whisper ASR:** Utilizing Hugging Face's serverless pipeline for Whisper-large-v3 keeps 5GB of weights off your GPU entirely, yielding sub-second transcriptions for free.
-  * **NVIDIA NIM Agents:** Conversational reasoning is dispatched to NVIDIA's cloud NIM nodes. This keeps large LLM weights (70 Billion parameter models) out of your VRAM.
-* **Local-Side (CUDA Accelerated):**
-  * **OmniVoice TTS:** The local text-to-speech model is loaded into VRAM utilizing float16 half-precision (`torch.float16`). This fits comfortably within the 5060 Ti VRAM budget, offering exceptionally fast real-time audio synthesis (real-time factor of 0.025, or 40x faster than real-time).
+* **Hybrid Execution Model**: You can toggle the voice assistant to run *Online* (Cloud APIs, 0MB VRAM) or *Offline* (Local GPU).
+* **Optimized Local Loading**: `download_models.py` explicitly skips heavy redundant FP32 files, ensuring only the efficient `.safetensors` files are loaded for Whisper and OmniVoice in `float16` precision.
+* **Cloud LLMs**: Conversational reasoning is dispatched to NVIDIA NIM nodes, keeping the massive 70B parameter LLM out of your VRAM.
 
 ---
 
@@ -52,24 +47,40 @@ To ensure both voice models and the agent system run smoothly on an **NVIDIA 506
 Make sure your environment variables are configured in the `.env` file at the root directory:
 * `HUGGINGFACE_API_KEY`: Used to authenticate cloud ASR.
 * `NVIDIA_NIM_API_KEY`: Used to query the agent's LLM.
+* `MONGO_URI`: Used for database connection (defaults to localhost).
 
-### 1. Launch the Server
-Ensure the virtual environment is used. Run the FastAPI development server from your terminal:
+First, ensure you have downloaded the local models:
 ```powershell
-# In d:\AI Projects in Antigravity\whisper_voice_agent
-& ".venv\Scripts\python.exe" -m uvicorn main:app --reload --port 8000
+uv run python download_models.py
 ```
 
-### 2. Load the Storefront
-Open your browser and navigate to:
-```url
-http://localhost:8000
+### 1. Launch the Backend API (Python)
+Run the FastAPI development server from your terminal:
+```powershell
+uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### 2. Launch the Web App Frontend (Node.js)
+Open a **new** terminal window, navigate to the `frontend` directory, and start Vite:
+```powershell
+cd frontend
+npm run dev
 ```
 
 ### 3. Voice Interaction
-1. Click the floating **VALENTI AI Stylist** widget at the bottom right.
-2. Click the **Microphone** button (grant permission if prompted).
-3. Speak clearly: *"I would like to look at watches. Can you find a minimalist watch and add it to my cart?"*
-4. Click the **Microphone** button again to stop recording.
-5. The visualizer will draw your audio, the AI will think, the product will be added to the cart on screen, and the stylist will read its premium recommendation back to you in a natural voice.
-6. When you are ready to buy, simply speak: *"Please place my order."*
+1. Open your browser to `http://localhost:5173`.
+2. Click the floating **VALENTI AI Stylist** widget at the bottom right.
+3. Toggle your preferred ASR/TTS modes (Cloud vs Local GPU).
+4. Click the **Microphone** button and speak clearly: *"I would like to look at watches. Can you find a minimalist watch and add it to my cart?"*
+5. The visualizer will draw your audio, the AI will think, the product will be added to the cart on screen, and the stylist will read its premium recommendation back to you.
+
+---
+
+## Testing Raw Voice Models (Test Bench)
+
+If you wish to purely test the capabilities of your local Whisper and OmniVoice hardware installation—without invoking the CrewAI LLM shopping logic—you can use the built-in standalone test bench.
+
+1. Ensure both the Python backend and Node.js frontend are running.
+2. Navigate to: `http://localhost:5173/test.html`
+3. Press Record and speak.
+4. The test bench strictly calls the backend `/api/test-voice` endpoint, which forces Whisper to transcribe locally, and OmniVoice to instantly synthesize that exact transcription locally.
