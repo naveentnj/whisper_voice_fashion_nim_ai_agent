@@ -49,21 +49,30 @@ def search_fashion_catalog(query: str = "", category: str = "", max_price: float
     Returns a formatted string listing matching products, their pricing, ID, description, and stock level.
     """
     results = []
-    q = query.lower()
-    cat = category.lower().strip()
     
-    for p in PRODUCTS_CATALOG:
-        match_cat = not cat or p["category"].lower() == cat
-        match_price = p["price"] <= max_price
-        
-        match_query = True
-        if q:
-            match_query = (q in p["name"].lower() or 
-                           q in p["description"].lower() or 
-                           q in p["category"].lower())
-            
-        if match_cat and match_price and match_query:
-            results.append(p)
+    # Query MongoDB database first
+    try:
+        from database import get_products_from_mongo, ping_db
+        if ping_db()["status"] == "connected":
+            results = get_products_from_mongo(category=category, query=query, max_price=max_price)
+            print(f"[Agent Tool] Successfully queried {len(results)} products from MongoDB")
+    except Exception as db_err:
+        print(f"[Agent Tool] MongoDB search skipped or failed, using JSON fallback: {db_err}")
+
+    # Fallback to local products.json if MongoDB query yielded no results
+    if not results:
+        q = query.lower()
+        cat = category.lower().strip()
+        for p in PRODUCTS_CATALOG:
+            match_cat = not cat or p["category"].lower() == cat
+            match_price = p["price"] <= max_price
+            match_query = True
+            if q:
+                match_query = (q in p["name"].lower() or 
+                               q in p["description"].lower() or 
+                               q in p["category"].lower())
+            if match_cat and match_price and match_query:
+                results.append(p)
             
     if not results:
         return "No products found matching those filters. Try adjusting your search keywords or category."
@@ -202,12 +211,13 @@ def create_crew_system() -> Crew:
     order_task = Task(
         description=(
             "Review the user's voice input: '{user_input}' and the stylist's output.\n"
+            "If the user's request is purely informational (e.g. asking how many items are in store, price of items, what is available) "
+            "and does NOT specify any cart modification (add/remove/checkout), you MUST NOT say you lack information to execute a cart action. "
+            "Instead, simply repeat the stylist's elegant recommendation/answer verbatim as the final response.\n"
             "If the user wants to add, remove, clear cart items, or place an order, use "
-            "the 'Modify User Shopping Cart' tool to execute that action.\n"
-            "Then produce the final spoken reply combining the stylist recommendation (if any) "
-            "and the cart action confirmation. Keep it under 3 sentences — warm and conversational."
+            "the 'Modify User Shopping Cart' tool to execute that action, and produce the final spoken reply confirming the cart action."
         ),
-        expected_output="A concise, natural, spoken response confirming cart actions and/or relaying the stylist's recommendation. Maximum 3 sentences.",
+        expected_output="A concise, natural, spoken response answering the user's question or confirming their cart actions.",
         agent=order_agent,
     )
 
