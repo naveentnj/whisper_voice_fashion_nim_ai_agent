@@ -41,6 +41,9 @@ OMNIVOICE_DIR = LOCAL_MODELS / "OmniVoice"
 load_dotenv(PROJECT_ROOT / ".env")
 HF_TOKEN = os.getenv("HUGGINGFACE_API_KEY", None)
 
+# Enable lightning-fast Rust hf-transfer downloads
+os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
+
 # ─────────────────────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────────────────────
@@ -54,11 +57,23 @@ def folder_size_mb(path: pathlib.Path) -> float:
     return total / (1024 ** 2)
 
 def is_complete(path: pathlib.Path, min_files: int = 3) -> bool:
-    """A download is considered complete if the folder has ≥ min_files files."""
+    """A download is considered complete if the folder has >= min_files files AND the main safetensors file exists."""
     if not path.exists():
         return False
     files = [f for f in path.rglob("*") if f.is_file()]
-    return len(files) >= min_files
+    if len(files) < min_files:
+        return False
+    
+    # If it's whisper dir, check for model.safetensors
+    if "whisper" in path.name.lower():
+        return any(f.name == "model.safetensors" for f in files)
+        
+    # If it's omnivoice, check for the main model.safetensors (not just audio_tokenizer)
+    if "omnivoice" in path.name.lower():
+        # Check if there is a model.safetensors directly inside OmniVoice dir
+        return any(f.name == "model.safetensors" and f.parent.name == "OmniVoice" for f in files)
+        
+    return True
 
 # ─────────────────────────────────────────────────────────────
 # Download: Whisper large-v3  (~3 GB)

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voice Models Test Bench</title>
+    <title>Comprehensive Voice Test Bench</title>
     <style>
         :root {
             --bg: #060608;
@@ -19,7 +19,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             min-height: 100vh;
             margin: 0;
             padding: 2rem;
@@ -30,25 +30,49 @@
             border-radius: 12px;
             padding: 2rem;
             width: 100%;
-            max-width: 600px;
+            max-width: 800px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            text-align: center;
         }
-        h1 { margin-top: 0; color: var(--primary); }
+        h1 { margin-top: 0; color: var(--primary); text-align: center; }
+        
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        select, input[type="text"] {
+            background: #1a1a24;
+            color: white;
+            border: 1px solid var(--border);
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        
         button {
             background-color: var(--primary);
             color: white;
             border: none;
             padding: 1rem 2rem;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s;
-            margin: 1.5rem 0;
+            width: 100%;
+            margin: 1rem 0;
+            font-weight: bold;
         }
-        button:hover { filter: brightness(1.2); transform: scale(1.05); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        button:not(:disabled):hover { filter: brightness(1.2); }
         button.recording { background-color: #ff007f; animation: pulse 1s infinite alternate; }
-        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.05); box-shadow: 0 0 15px #ff007f; } }
+        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.02); box-shadow: 0 0 15px #ff007f; } }
+        
         .log-box {
             background: #000;
             border: 1px solid var(--border);
@@ -58,113 +82,320 @@
             text-align: left;
             font-family: monospace;
             margin-bottom: 1rem;
-            color: #10b981;
+            white-space: pre-wrap;
         }
+        .log-box strong { display: block; margin-bottom: 0.5rem; color: #a1a1aa; }
         audio { width: 100%; margin-top: 1rem; outline: none; }
+        
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Raw Voice Test Bench</h1>
-    <p style="color: #7a7f8e; margin-bottom: 2rem;">
-        This explicitly bypasses CrewAI and the LLM.<br>
-        <strong>1. Whisper</strong> (Local GPU) Transcribes.<br>
-        <strong>2. OmniVoice</strong> (Local GPU) Echoes back.
-    </p>
-
-    <button id="recordBtn">Press to Record</button>
-
-    <div class="log-box">
-        <strong style="color:var(--text)">Whisper Transcription:</strong><br>
-        <span id="transcriptionText">Waiting for audio...</span>
+    <h1>Diagnostic Test Bench</h1>
+    
+    <div class="controls-grid">
+        <div class="control-group">
+            <label>Test Mode</label>
+            <select id="testMode">
+                <option value="full">1. Full Pipeline (Whisper -> NIM -> OmniVoice)</option>
+                <option value="asr">2. Whisper ASR Only (Audio -> Text)</option>
+                <option value="llm">3. NIM LLM Only (Text -> Text)</option>
+                <option value="tts">4. OmniVoice TTS Only (Text -> Audio)</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>Hardware Mode</label>
+            <select id="hardwareMode">
+                <option value="offline">Offline (Local GPU)</option>
+                <option value="online">Online (Cloud API)</option>
+            </select>
+        </div>
     </div>
 
-    <div class="log-box" style="color:#3b82f6;">
-        <strong style="color:var(--text)">OmniVoice Output:</strong><br>
-        <span id="audioStatus">Waiting for audio...</span>
+    <!-- Inputs -->
+    <div id="audioInputGroup">
+        <button id="recordBtn">Press to Record Audio</button>
     </div>
     
-    <audio id="audioPlayer" controls></audio>
+    <div id="textInputGroup" class="hidden">
+        <input type="text" id="textInput" placeholder="Enter text to test LLM or TTS..." />
+        <button id="submitTextBtn">Run Test</button>
+    </div>
+
+    <!-- Outputs -->
+    <div class="log-box" id="transcriptionLog" style="color: #10b981;">
+        <strong>Whisper Transcription (ASR):</strong>
+        <span id="transcriptionText">-</span>
+    </div>
+
+    <div class="log-box" id="llmLog" style="color: #a855f7;">
+        <strong>NIM LLM Output:</strong>
+        <span id="llmText">-</span>
+    </div>
+
+    <div class="log-box" id="ttsLog" style="color: #3b82f6;">
+        <strong>OmniVoice Output (TTS):</strong>
+        <span id="ttsStatus">-</span>
+        <audio id="audioPlayer" controls class="hidden"></audio>
+    </div>
 </div>
 
 <script>
+    // State
     let mediaRecorder;
     let audioChunks = [];
     let isRecording = false;
 
+    // Elements
+    const testMode = document.getElementById('testMode');
+    const hardwareMode = document.getElementById('hardwareMode');
+    const audioInputGroup = document.getElementById('audioInputGroup');
+    const textInputGroup = document.getElementById('textInputGroup');
+    const textInput = document.getElementById('textInput');
+    
     const recordBtn = document.getElementById('recordBtn');
+    const submitTextBtn = document.getElementById('submitTextBtn');
+    
     const transcriptionText = document.getElementById('transcriptionText');
-    const audioStatus = document.getElementById('audioStatus');
+    const llmText = document.getElementById('llmText');
+    const ttsStatus = document.getElementById('ttsStatus');
     const audioPlayer = document.getElementById('audioPlayer');
+
+    // UI Logic
+    testMode.addEventListener('change', (e) => {
+        const mode = e.target.value;
+        if (mode === 'full' || mode === 'asr') {
+            audioInputGroup.classList.remove('hidden');
+            textInputGroup.classList.add('hidden');
+        } else {
+            audioInputGroup.classList.add('hidden');
+            textInputGroup.classList.remove('hidden');
+        }
+        resetLogs();
+    });
+
+    function resetLogs() {
+        transcriptionText.textContent = '-';
+        llmText.textContent = '-';
+        ttsStatus.textContent = '-';
+        audioPlayer.classList.add('hidden');
+        audioPlayer.src = '';
+    }
+
+    // Audio Recording Logic — records as WAV (PCM16) for universal compatibility
+    let audioContext;
+    let micStream;
+    let scriptProcessor;
+    let rawPcmChunks = [];
 
     recordBtn.addEventListener('click', async () => {
         if (isRecording) {
-            mediaRecorder.stop();
+            // STOP recording
             isRecording = false;
             recordBtn.textContent = 'Processing...';
+            recordBtn.disabled = true;
             recordBtn.classList.remove('recording');
+            scriptProcessor.disconnect();
+            micStream.getTracks().forEach(t => t.stop());
+
+            // Resample from native rate → 16kHz, then encode WAV
+            const nativeRate = audioContext.sampleRate;
+            audioContext.close();
+            const wavBlob = encodeWAV(rawPcmChunks, nativeRate, 16000);
+            rawPcmChunks = [];
+            await processAudioSubmit(wavBlob);
         } else {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
-                audioChunks = [];
+                resetLogs();
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true }
+                });
+                micStream = stream;
+                // Use browser's native sample rate (usually 48000Hz) — do NOT force 16000
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createMediaStreamSource(stream);
+                
+                // Buffer size 4096, 1 input channel, 1 output channel
+                scriptProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+                rawPcmChunks = [];
 
-                mediaRecorder.ondataavailable = e => {
-                    if (e.data.size > 0) audioChunks.push(e.data);
+                scriptProcessor.onaudioprocess = (e) => {
+                    const channelData = e.inputBuffer.getChannelData(0);
+                    rawPcmChunks.push(new Float32Array(channelData));
                 };
 
-                mediaRecorder.onstop = async () => {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                    await sendAudio(audioBlob);
-                    stream.getTracks().forEach(t => t.stop());
-                };
+                source.connect(scriptProcessor);
+                scriptProcessor.connect(audioContext.destination);
 
-                mediaRecorder.start();
                 isRecording = true;
                 recordBtn.textContent = 'Stop Recording';
                 recordBtn.classList.add('recording');
-                transcriptionText.textContent = 'Recording...';
-                audioStatus.textContent = 'Waiting...';
             } catch (err) {
                 alert('Microphone access denied or failed: ' + err.message);
             }
         }
     });
 
-    async function sendAudio(blob) {
-        const formData = new FormData();
-        formData.append('file', blob, 'test.webm');
-
-        try {
-            transcriptionText.textContent = 'Running Local Whisper...';
-            
-            // Note: Since this file runs on the Vite dev server (port 5173),
-            // requests to /api are proxied to FastAPI (port 8000) automatically!
-            const res = await fetch('/api/test-voice', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
-
-            const data = await res.json();
-            
-            transcriptionText.textContent = data.transcription || "[Silence detected]";
-            audioStatus.textContent = "OmniVoice synthesis complete. Playing audio...";
-            
-            if (data.audio_url) {
-                audioPlayer.src = data.audio_url;
-                audioPlayer.play();
-            }
-
-            recordBtn.textContent = 'Press to Record Again';
-        } catch (err) {
-            console.error(err);
-            transcriptionText.textContent = 'Error: ' + err.message;
-            audioStatus.textContent = 'Failed.';
-            recordBtn.textContent = 'Error. Try Again';
+    /**
+     * Encode raw Float32 PCM chunks into a 16kHz WAV Blob (16-bit PCM, mono).
+     * Resamples from nativeRate to targetRate if they differ.
+     */
+    function encodeWAV(chunks, nativeRate, targetRate) {
+        // Merge all chunks
+        let totalLength = 0;
+        for (const chunk of chunks) totalLength += chunk.length;
+        const merged = new Float32Array(totalLength);
+        let offset = 0;
+        for (const chunk of chunks) {
+            merged.set(chunk, offset);
+            offset += chunk.length;
         }
+
+        // Resample if needed
+        let samples = merged;
+        if (nativeRate !== targetRate) {
+            const ratio = targetRate / nativeRate;
+            const newLength = Math.round(totalLength * ratio);
+            samples = new Float32Array(newLength);
+            for (let i = 0; i < newLength; i++) {
+                const srcIdx = i / ratio;
+                const lo = Math.floor(srcIdx);
+                const hi = Math.min(lo + 1, totalLength - 1);
+                const frac = srcIdx - lo;
+                samples[i] = merged[lo] * (1 - frac) + merged[hi] * frac;
+            }
+        }
+
+        // Convert float32 → int16
+        const int16 = new Int16Array(samples.length);
+        for (let i = 0; i < samples.length; i++) {
+            const s = Math.max(-1, Math.min(1, samples[i]));
+            int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        }
+
+        // Build WAV header
+        const buffer = new ArrayBuffer(44 + int16.length * 2);
+        const view = new DataView(buffer);
+
+        // RIFF header
+        writeString(view, 0, 'RIFF');
+        view.setUint32(4, 36 + int16.length * 2, true);
+        writeString(view, 8, 'WAVE');
+        // fmt sub-chunk
+        writeString(view, 12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, 1, true);
+        view.setUint32(24, targetRate, true);
+        view.setUint32(28, targetRate * 2, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
+        // data sub-chunk
+        writeString(view, 36, 'data');
+        view.setUint32(40, int16.length * 2, true);
+
+        // Write PCM data
+        const uint8 = new Uint8Array(buffer);
+        uint8.set(new Uint8Array(int16.buffer), 44);
+
+        return new Blob([uint8], { type: 'audio/wav' });
+    }
+
+    function writeString(view, offset, str) {
+        for (let i = 0; i < str.length; i++) {
+            view.setUint8(offset + i, str.charCodeAt(i));
+        }
+    }
+
+    // Text Submit Logic
+    submitTextBtn.addEventListener('click', async () => {
+        const text = textInput.value.trim();
+        if (!text) return alert("Please enter some text.");
+        submitTextBtn.disabled = true;
+        submitTextBtn.textContent = 'Processing...';
+        resetLogs();
+        
+        const mode = testMode.value;
+        const hw = hardwareMode.value;
+        
+        try {
+            if (mode === 'llm') {
+                llmText.textContent = 'Running NIM LLM...';
+                const fd = new FormData();
+                fd.append('text', text);
+                const res = await fetch('/api/test-llm', { method: 'POST', body: fd });
+                const data = await res.json();
+                llmText.textContent = data.response || "Error";
+            } 
+            else if (mode === 'tts') {
+                ttsStatus.textContent = 'Generating Audio...';
+                const fd = new FormData();
+                fd.append('text', text);
+                fd.append('tts_mode', hw);
+                const res = await fetch('/api/test-tts', { method: 'POST', body: fd });
+                const data = await res.json();
+                ttsStatus.textContent = 'Complete.';
+                if (data.audio_url) {
+                    audioPlayer.src = data.audio_url;
+                    audioPlayer.classList.remove('hidden');
+                    audioPlayer.play();
+                }
+            }
+        } catch (err) {
+            alert("Error: " + err.message);
+        }
+        
+        submitTextBtn.disabled = false;
+        submitTextBtn.textContent = 'Run Test';
+    });
+
+    // Audio Submit Logic
+    async function processAudioSubmit(blob) {
+        const mode = testMode.value;
+        const hw = hardwareMode.value;
+        const fd = new FormData();
+        
+        try {
+            if (mode === 'asr') {
+                transcriptionText.textContent = 'Transcribing...';
+                fd.append('file', blob, 'test.wav');
+                fd.append('asr_mode', hw);
+                
+                const res = await fetch('/api/test-asr', { method: 'POST', body: fd });
+                const data = await res.json();
+                transcriptionText.textContent = data.transcription || "[Silence]";
+            }
+            else if (mode === 'full') {
+                transcriptionText.textContent = 'Transcribing...';
+                llmText.textContent = 'Waiting for ASR...';
+                ttsStatus.textContent = 'Waiting for LLM...';
+                
+                fd.append('file', blob, 'test.wav');
+                fd.append('asr_mode', hw);
+                fd.append('tts_mode', hw);
+                fd.append('cart', JSON.stringify({})); // Empty cart
+                
+                const res = await fetch('/api/voice-chat', { method: 'POST', body: fd });
+                const data = await res.json();
+                
+                transcriptionText.textContent = data.transcription || "[Silence]";
+                llmText.textContent = data.response || "Error";
+                ttsStatus.textContent = 'Complete.';
+                
+                if (data.audio_url) {
+                    audioPlayer.src = data.audio_url;
+                    audioPlayer.classList.remove('hidden');
+                    audioPlayer.play();
+                }
+            }
+        } catch (err) {
+            alert("Error: " + err.message);
+        }
+        
+        recordBtn.disabled = false;
+        recordBtn.textContent = 'Press to Record Audio';
     }
 </script>
 

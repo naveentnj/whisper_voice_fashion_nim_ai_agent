@@ -2,17 +2,17 @@ import os
 import json
 import sys
 import uuid
+import asyncio
 from typing import Dict, List, Any
 from dotenv import load_dotenv
-from langchain_nvidia_ai_endpoints import ChatNVIDIA
-from crewai import Agent, Task, Crew, Process
+from crewai import Agent, Task, Crew, Process, LLM
 from crewai.tools import tool
 
 # Load environment
 dotenv_path = os.path.join(os.path.dirname(__file__), ".env")
 load_dotenv(dotenv_path=dotenv_path)
 
-# Set NVIDIA API key for LangChain endpoint
+# Set NVIDIA API key for LiteLLM
 os.environ["NVIDIA_API_KEY"] = os.getenv("NVIDIA_NIM_API_KEY", "")
 
 # Load product data once
@@ -155,13 +155,13 @@ def modify_user_shopping_cart(action: str, product_id: str, quantity: int = 1) -
 
 def create_crew_system() -> Crew:
     """
-    Creates and returns the CrewAI agent setup using ChatNVIDIA.
-    Model: meta/llama-3.1-70b-instruct — verified available + supports tool calling.
+    Creates and returns the CrewAI agent setup.
+    Model: meta/llama-3.3-70b-instruct — highly reliable, excellent at tool use, and 3x faster than 3.1.
     """
-    llm = ChatNVIDIA(
-        model="meta/llama-3.1-70b-instruct",
+    llm = LLM(
+        model="nvidia_nim/meta/llama-3.3-70b-instruct",
         temperature=0.2,
-        max_completion_tokens=1024,
+        max_tokens=1024,
     )
     
     # 1. Stylist / Fashion Consultant Agent
@@ -225,60 +225,85 @@ def create_crew_system() -> Crew:
 # Main Entrypoint
 # -------------------------------------------------------------
 
+def _build_result(user_input, session_id, result_obj, current_cart, asr_mode, tts_mode):
+    """Shared logic to build the response dict and persist to MongoDB."""
+    global _active_cart, _action_log
+    response_text = str(result_obj).strip()
+    print(f"[Agent] flow done | response='{response_text[:80]}...' | cart={_active_cart}")
+
+    # ── Persist session to MongoDB (best-effort) ──
+    try:
+        from database import log_voice_session
+        log_voice_session(
+            session_id=session_id,
+            transcription=user_input,
+            response=response_text,
+            asr_mode=asr_mode,
+            tts_mode=tts_mode,
+            cart_snapshot=_active_cart.copy(),
+        )
+    except Exception as db_err:
+        print(f"[Agent] MongoDB session log skipped: {db_err}")
+
+    return {
+        "response": response_text,
+        "cart":     _active_cart.copy(),
+        "actions":  _action_log.copy(),
+    }
+
+
+def _prepare_flow(user_input, current_cart, session_id):
+    """Shared setup for both sync and async flows."""
+    global _active_cart, _action_log
+    _active_cart = current_cart.copy()
+    _action_log = []
+    if not session_id:
+        session_id = str(uuid.uuid4())
+    print(f"[Agent] flow start | session={session_id} | input='{user_input}' | cart={current_cart}")
+    return session_id
+
+
 def run_agent_flow(user_input: str, current_cart: Dict[str, int],
                    session_id: str = "", asr_mode: str = "online",
                    tts_mode: str = "online") -> Dict[str, Any]:
     """
-    Runs the CrewAI multi-agent coordinator for a user's voice request.
-    Persists session logs to MongoDB when available.
+    Synchronous version – use from scripts and CLI.
+    Do NOT call from an async FastAPI endpoint (use run_agent_flow_async instead).
     """
-    global _active_cart, _action_log
-    _active_cart = current_cart.copy()
-    _action_log = []
-
-    if not session_id:
-        session_id = str(uuid.uuid4())
-
-    print(f"[Agent] flow start | session={session_id} | input='{user_input}' | cart={current_cart}")
-
+    session_id = _prepare_flow(user_input, current_cart, session_id)
     try:
         crew = create_crew_system()
         result = crew.kickoff(inputs={"user_input": user_input})
-        response_text = str(result).strip()
-
-        print(f"[Agent] flow done | response='{response_text[:80]}...' | cart={_active_cart}")
-
-        # ── Persist session to MongoDB (best-effort) ──
-        try:
-            from database import log_voice_session
-            log_voice_session(
-                session_id=session_id,
-                transcription=user_input,
-                response=response_text,
-                asr_mode=asr_mode,
-                tts_mode=tts_mode,
-                cart_snapshot=_active_cart.copy(),
-            )
-        except Exception as db_err:
-            print(f"[Agent] MongoDB session log skipped: {db_err}")
-
-        return {
-            "response": response_text,
-            "cart":     _active_cart.copy(),
-            "actions":  _action_log.copy(),
-        }
+        return _build_result(user_input, session_id, result, current_cart, asr_mode, tts_mode)
     except Exception as e:
+        import traceback
         print(f"[Agent] ERROR in multi-agent flow: {e}")
-        return {
-            "response": "I apologize, but I encountered a slight connection issue. Your cart is preserved safely.",
-            "cart":    current_cart,
-            "actions": [],
-        }
+        traceback.print_exc()
+        return {"response": f"Agent error: {e}", "cart": current_cart, "actions": []}
+
+
+async def run_agent_flow_async(user_input: str, current_cart: Dict[str, int],
+                               session_id: str = "", asr_mode: str = "online",
+                               tts_mode: str = "online") -> Dict[str, Any]:
+    """
+    Async version – safe to call from FastAPI async endpoints.
+    Uses crew.kickoff_async() which cooperates with the running event loop.
+    """
+    session_id = _prepare_flow(user_input, current_cart, session_id)
+    try:
+        crew = create_crew_system()
+        result = await crew.kickoff_async(inputs={"user_input": user_input})
+        return _build_result(user_input, session_id, result, current_cart, asr_mode, tts_mode)
+    except Exception as e:
+        import traceback
+        print(f"[Agent] ERROR in multi-agent flow (async): {e}")
+        traceback.print_exc()
+        return {"response": f"Agent error: {e}", "cart": current_cart, "actions": []}
+
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--test":
         print("Testing Multi-Agent Coordinator using NVIDIA NIM...")
-        # Test addition of a shirt to a blank cart
         test_cart = {}
         result = run_agent_flow("Hey, can you search for a good linen shirt and add one to my cart?", test_cart)
         print("Agent Result:")

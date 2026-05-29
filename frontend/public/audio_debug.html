@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Audio Debug Tool</title>
+    <style>
+        body { font-family: monospace; background: #111; color: #0f0; padding: 2rem; }
+        button { font-size: 1.2rem; padding: 0.8rem 2rem; margin: 0.5rem; cursor: pointer; }
+        .log { background: #000; border: 1px solid #333; padding: 1rem; margin: 1rem 0; white-space: pre-wrap; max-height: 400px; overflow-y: auto; }
+        .error { color: #f55; }
+        .success { color: #5f5; }
+        .info { color: #5af; }
+        audio { display: block; margin: 1rem 0; }
+    </style>
+</head>
+<body>
+    <h1>🔬 Audio Recording Debug Tool</h1>
+    <p>This page isolates whether the mic is capturing audio correctly.</p>
+    
+    <button id="recordBtn">🎤 Record (3 seconds)</button>
+    <button id="sendBtn" disabled>📤 Send to Backend</button>
+    <button id="downloadBtn" disabled>💾 Download WAV</button>
+    
+    <h3>Playback (does this sound correct?):</h3>
+    <audio id="player" controls></audio>
+    
+    <div class="log" id="log"></div>
+
+<script>
+const log = document.getElementById('log');
+const recordBtn = document.getElementById('recordBtn');
+const sendBtn = document.getElementById('sendBtn');
+const downloadBtn = document.getElementById('downloadBtn');
+const player = document.getElementById('player');
+
+let lastWavBlob = null;
+
+function addLog(msg, cls = '') {
+    const span = document.createElement('span');
+    span.className = cls;
+    span.textContent = msg + '\n';
+    log.appendChild(span);
+    log.scrollTop = log.scrollHeight;
+}
+
+recordBtn.addEventListener('click', async () => {
+    recordBtn.disabled = true;
+    addLog('--- New Recording ---', 'info');
+    
+    try {
+        // Step 1: Get microphone
+        addLog('[1] Requesting microphone access...');
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true }
+        });
+        const audioTrack = stream.getAudioTracks()[0];
+        const settings = audioTrack.getSettings();
+        addLog(`[1] ✓ Mic granted: ${audioTrack.label}`, 'success');
+        addLog(`[1]   Settings: sampleRate=${settings.sampleRate}, channels=${settings.channelCount}`, 'info');
+
+        // Step 2: Create AudioContext
+        // NOTE: Browsers often ignore the requested sampleRate. We check what we actually get.
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const actualSampleRate = audioCtx.sampleRate;
+        addLog(`[2] AudioContext created. Actual sampleRate: ${actualSampleRate}Hz`, 'info');
+        
+        const source = audioCtx.createMediaStreamSource(stream);
+        const processor = audioCtx.createScriptProcessor(4096, 1, 1);
+        const chunks = [];
+        let maxAmplitude = 0;
+
+        processor.onaudioprocess = (e) => {
+            const data = e.inputBuffer.getChannelData(0);
+            chunks.push(new Float32Array(data));
+            // Track max amplitude to verify we're getting actual audio
+            for (let i = 0; i < data.length; i++) {
+                const abs = Math.abs(data[i]);
+                if (abs > maxAmplitude) maxAmplitude = abs;
+            }
+        };
+
+        source.connect(processor);
+        processor.connect(audioCtx.destination);
+
+        addLog('[3] Recording for 3 seconds... SPEAK NOW!', 'info');
+        
+        // Record for 3 seconds
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Stop
+        processor.disconnect();
+        stream.getTracks().forEach(t => t.stop());
+        
+        addLog(`[4] Recording stopped. Chunks: ${chunks.length}, MaxAmplitude: ${maxAmplitude.toFixed(6)}`, 'info');
+        
+        if (maxAmplitude < 0.001) {
+            addLog('[4] ⚠️ WARNING: Max amplitude is near zero — mic may not be capturing audio!', 'error');
+            addLog('[4]   Try: Check Windows Sound Settings → Input → ensure correct mic is selected', 'error');
+        } else {
+            addLog(`[4] ✓ Audio amplitude looks good (${maxAmplitude.toFixed(4)})`, 'success');
+        }
+
+        // Step 5: Merge chunks
+        let totalLength = 0;
+        for (const c of chunks) totalLength += c.length;
+        const merged = new Float32Array(totalLength);
+        let offset = 0;
+        for (const c of chunks) { merged.set(c, offset); offset += c.length; }
+        
+        addLog(`[5] Merged: ${totalLength} samples = ${(totalLength / actualSampleRate).toFixed(2)}s at ${actualSampleRate}Hz`, 'info');
+
+        // Step 6: Resample to 16kHz if needed (Whisper expects 16kHz)
+        let finalSamples = merged;
+        let finalRate = actualSampleRate;
+        
+        if (actualSampleRate !== 16000) {
+            addLog(`[6] Resampling from ${actualSampleRate}Hz → 16000Hz...`, 'info');
+            const ratio = 16000 / actualSampleRate;
+            const newLength = Math.round(totalLength * ratio);
+            finalSamples = new Float32Array(newLength);
+            for (let i = 0; i < newLength; i++) {
+                const srcIdx = i / ratio;
+                const lo = Math.floor(srcIdx);
+                const hi = Math.min(lo + 1, totalLength - 1);
+                const frac = srcIdx - lo;
+                finalSamples[i] = merged[lo] * (1 - frac) + merged[hi] * frac;
+            }
+            finalRate = 16000;
+            addLog(`[6] ✓ Resampled: ${newLength} samples at ${finalRate}Hz (${(newLength/finalRate).toFixed(2)}s)`, 'success');
+        } else {
+            addLog(`[6] No resampling needed (already 16kHz)`, 'success');
+        }
+
+        // Step 7: Encode WAV
+        const int16 = new Int16Array(finalSamples.length);
+        for (let i = 0; i < finalSamples.length; i++) {
+            const s = Math.max(-1, Math.min(1, finalSamples[i]));
+            int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        }
+
+        const wavBuffer = new ArrayBuffer(44 + int16.length * 2);
+        const view = new DataView(wavBuffer);
+        const writeStr = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+
+        writeStr(0, 'RIFF');
+        view.setUint32(4, 36 + int16.length * 2, true);
+        writeStr(8, 'WAVE');
+        writeStr(12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, 1, true);
+        view.setUint32(24, finalRate, true);
+        view.setUint32(28, finalRate * 2, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
+        writeStr(36, 'data');
+        view.setUint32(40, int16.length * 2, true);
+
+        const wavBytes = new Uint8Array(wavBuffer);
+        wavBytes.set(new Uint8Array(int16.buffer), 44);
+
+        lastWavBlob = new Blob([wavBytes], { type: 'audio/wav' });
+        
+        addLog(`[7] ✓ WAV encoded: ${lastWavBlob.size} bytes (header=44 + data=${int16.length * 2})`, 'success');
+
+        // Step 8: Set playback
+        const url = URL.createObjectURL(lastWavBlob);
+        player.src = url;
+        addLog('[8] ✓ Audio ready for playback. Press play above to verify.', 'success');
+        
+        sendBtn.disabled = false;
+        downloadBtn.disabled = false;
+        
+        await audioCtx.close();
+
+    } catch (err) {
+        addLog(`ERROR: ${err.message}`, 'error');
+    }
+    
+    recordBtn.disabled = false;
+});
+
+// Send to backend
+sendBtn.addEventListener('click', async () => {
+    if (!lastWavBlob) return;
+    sendBtn.disabled = true;
+    addLog('\n--- Sending to Backend ---', 'info');
+    
+    const fd = new FormData();
+    fd.append('file', lastWavBlob, 'debug_test.wav');
+    fd.append('asr_mode', 'offline');
+    
+    try {
+        addLog('[SEND] POST /api/test-asr with ' + lastWavBlob.size + ' bytes...', 'info');
+        const res = await fetch('/api/test-asr', { method: 'POST', body: fd });
+        const data = await res.json();
+        
+        if (res.ok) {
+            addLog(`[RESULT] Transcription: "${data.transcription}"`, data.transcription ? 'success' : 'error');
+            if (!data.transcription) {
+                addLog('[RESULT] ⚠️ Empty transcription returned — check uvicorn terminal for [TestASR] logs', 'error');
+            }
+        } else {
+            addLog(`[RESULT] Server error ${res.status}: ${JSON.stringify(data)}`, 'error');
+        }
+    } catch (err) {
+        addLog(`[RESULT] Network error: ${err.message}`, 'error');
+    }
+    
+    sendBtn.disabled = false;
+});
+
+// Download WAV
+downloadBtn.addEventListener('click', () => {
+    if (!lastWavBlob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(lastWavBlob);
+    a.download = 'debug_recording.wav';
+    a.click();
+    addLog('[DOWNLOAD] WAV file downloaded. Open in Audacity/VLC to verify audio content.', 'info');
+});
+</script>
+</body>
+</html>

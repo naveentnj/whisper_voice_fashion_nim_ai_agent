@@ -157,13 +157,81 @@ def _transcribe_offline(audio_path: str) -> str:
         
     pipe = get_local_whisper_pipeline()
     print(f"Transcribing audio file {audio_path} locally on GPU...")
+    
+    # Determine file extension
+    ext = os.path.splitext(audio_path)[1].lower()
+    wav_path = None
+    
     try:
-        # Load audio using soundfile
+        # WebM/OGG/MP3 files need conversion — soundfile only reads WAV/FLAC natively
+        if ext in ('.webm', '.ogg', '.mp3', '.mp4', '.m4a', '.opus'):
+            wav_path = audio_path + ".converted.wav"
+            converted = False
+            
+            # Strategy 1: Try ffmpeg directly (fastest)
+            try:
+                import subprocess
+                result = subprocess.run(
+                    ["ffmpeg", "-y", "-i", audio_path, "-ar", "16000", "-ac", "1", "-f", "wav", wav_path],
+                    capture_output=True, text=True, timeout=15
+                )
+                if result.returncode == 0 and os.path.exists(wav_path) and os.path.getsize(wav_path) > 100:
+                    converted = True
+                    print(f"[ASR] Converted {ext} → WAV via ffmpeg ({os.path.getsize(wav_path)} bytes)")
+                else:
+                    print(f"[ASR] ffmpeg conversion failed: {result.stderr[:200]}")
+            except FileNotFoundError:
+                print("[ASR] ffmpeg not found, trying pydub...")
+            except Exception as e:
+                print(f"[ASR] ffmpeg error: {e}")
+            
+            # Strategy 2: Try pydub (needs ffmpeg installed but gives better error messages)
+            if not converted:
+                try:
+                    from pydub import AudioSegment
+                    audio_seg = AudioSegment.from_file(audio_path)
+                    audio_seg = audio_seg.set_frame_rate(16000).set_channels(1)
+                    audio_seg.export(wav_path, format="wav")
+                    if os.path.exists(wav_path) and os.path.getsize(wav_path) > 100:
+                        converted = True
+                        print(f"[ASR] Converted {ext} → WAV via pydub ({os.path.getsize(wav_path)} bytes)")
+                except Exception as e:
+                    print(f"[ASR] pydub conversion failed: {e}")
+            
+            # Strategy 3: Use librosa directly (pure Python, no ffmpeg needed)
+            if not converted:
+                try:
+                    import librosa
+                    import numpy as np
+                    data, sr = librosa.load(audio_path, sr=16000, mono=True)
+                    sf.write(wav_path, data, 16000)
+                    if os.path.exists(wav_path) and os.path.getsize(wav_path) > 100:
+                        converted = True
+                        print(f"[ASR] Converted {ext} → WAV via librosa ({os.path.getsize(wav_path)} bytes)")
+                except Exception as e:
+                    print(f"[ASR] librosa conversion failed: {e}")
+            
+            if not converted:
+                raise RuntimeError(
+                    f"Cannot decode {ext} audio. Install ffmpeg: "
+                    f"Download from https://www.gyan.dev/ffmpeg/builds/ and add to PATH, "
+                    f"or run: winget install ffmpeg"
+                )
+            
+            audio_path = wav_path
+        
+        # Now read the WAV/FLAC file with soundfile
         data, samplerate = sf.read(audio_path)
         
         # Convert stereo to mono if necessary
         if len(data.shape) > 1:
             data = data.mean(axis=1)
+        
+        print(f"[ASR] Audio loaded: {len(data)} samples, {samplerate}Hz, duration={len(data)/samplerate:.1f}s")
+        
+        if len(data) < 1600:  # Less than 0.1 seconds
+            print("[ASR] Audio too short (< 0.1s), returning empty")
+            return ""
             
         # Format for Hugging Face pipeline (handles resampling to 16kHz automatically)
         audio_input = {
@@ -177,7 +245,16 @@ def _transcribe_offline(audio_path: str) -> str:
         return text
     except Exception as e:
         print(f"Local transcription failed: {e}")
+        import traceback
+        traceback.print_exc()
         raise e
+    finally:
+        # Clean up converted file
+        if wav_path and os.path.exists(wav_path):
+            try:
+                os.remove(wav_path)
+            except Exception:
+                pass
 
 def synthesize_speech(text: str, output_path: str, mode: str = "online", reference_audio: str = None, reference_text: str = None) -> str:
     """

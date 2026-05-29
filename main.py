@@ -130,7 +130,7 @@ async def post_voice_chat(
         raise HTTPException(status_code=400, detail=f"Invalid cart JSON: {e}")
 
     # Save audio
-    temp_voice_path = os.path.join(AUDIO_DIR, f"input_{session_id}.webm")
+    temp_voice_path = os.path.join(AUDIO_DIR, f"input_{session_id}.wav")
     try:
         content = await file.read()
         with open(temp_voice_path, "wb") as f:
@@ -165,7 +165,7 @@ async def post_voice_chat(
 
     # Agent flow (NIM LLM + tool calling + MongoDB logging)
     print(f"[Voice] '{transcription}' | asr={asr_mode} tts={tts_mode}")
-    agent_result = agents.run_agent_flow(
+    agent_result = await agents.run_agent_flow_async(
         user_input=transcription,
         current_cart=current_cart,
         session_id=session_id,
@@ -207,57 +207,65 @@ async def post_voice_chat(
 
 
 # ─────────────────────────────────────────────────────────────────
-# Raw Voice Test Bench API (No LLM)
+# Raw Test Bench APIs
 # ─────────────────────────────────────────────────────────────────
-@app.post("/api/test-voice")
-async def post_test_voice(
-    file: UploadFile = File(...)
+
+@app.post("/api/test-asr")
+async def test_asr(
+    file: UploadFile = File(...),
+    asr_mode: str = Form("offline")
 ):
-    """
-    Pure testing endpoint:
-    1. Transcribes audio strictly via local Whisper
-    2. Synthesizes the transcribed text strictly via local OmniVoice
-    """
+    """Test ASR strictly (Audio -> Text)"""
     session_id = str(uuid.uuid4())
-    temp_voice_path = os.path.join(AUDIO_DIR, f"test_input_{session_id}.webm")
-    
-    # Save audio
+    temp_voice_path = os.path.join(AUDIO_DIR, f"test_asr_{session_id}.wav")
     try:
         content = await file.read()
+        print(f"[TestASR] Received audio: {len(content)} bytes | filename={file.filename} | content_type={file.content_type} | mode={asr_mode}")
+        if len(content) < 100:
+            print(f"[TestASR] WARNING: Audio file is very small ({len(content)} bytes), likely empty recording")
         with open(temp_voice_path, "wb") as f:
             f.write(content)
+        transcription = voice.transcribe_audio(temp_voice_path, mode=asr_mode)
+        print(f"[TestASR] Transcription result: '{transcription}'")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to save audio: {e}")
-
-    # Transcribe (Forced Offline)
-    try:
-        transcription = voice.transcribe_audio(temp_voice_path, mode="offline")
-    except Exception as e:
-        if os.path.exists(temp_voice_path):
-            os.remove(temp_voice_path)
-        raise HTTPException(status_code=500, detail=f"Local Whisper failed: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"ASR failed: {e}")
     finally:
         if os.path.exists(temp_voice_path):
             os.remove(temp_voice_path)
 
-    # Synthesize (Forced Offline)
-    audio_filename = f"test_reply_{session_id}.wav"
+    return {"transcription": transcription}
+
+
+@app.post("/api/test-llm")
+async def test_llm(
+    text: str = Form(...)
+):
+    """Test LLM strictly (Text -> Text)"""
+    agent_result = await agents.run_agent_flow_async(
+        user_input=text,
+        current_cart={},
+    )
+    return {"response": agent_result["response"]}
+
+
+@app.post("/api/test-tts")
+def test_tts(
+    text: str = Form(...),
+    tts_mode: str = Form("offline")
+):
+    """Test TTS strictly (Text -> Audio)"""
+    session_id = str(uuid.uuid4())
+    audio_filename = f"test_tts_{session_id}.{'wav' if tts_mode=='offline' else 'mp3'}"
     out_path = os.path.join(AUDIO_DIR, audio_filename)
-    audio_url = None
-    
-    # If silence, provide fallback text to synthesize
-    response_text = transcription if transcription else "I didn't hear anything, but the synthesis is working."
-    
     try:
-        voice.synthesize_speech(response_text, out_path, mode="offline")
+        voice.synthesize_speech(text, out_path, mode=tts_mode)
         audio_url = f"/static/audio/{audio_filename}"
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Local OmniVoice failed: {e}")
+        raise HTTPException(status_code=500, detail=f"TTS failed: {e}")
 
-    return {
-        "transcription": transcription,
-        "audio_url": audio_url
-    }
+    return {"audio_url": audio_url}
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -369,7 +377,7 @@ def health():
         "gpu_available": torch.cuda.is_available(),
         "gpu_name":     torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU",
         "mongodb":      "connected" if db_ok else "disconnected (orders saved in-memory)",
-        "nim_model":    "meta/llama-3.1-70b-instruct",
+        "nim_model":    "moonshotai/kimi-k2.6",
         "whisper":      "openai/whisper-large-v3 (cloud + local GPU)",
         "tts":          "gTTS (cloud) | OmniVoice (local GPU)",
     }

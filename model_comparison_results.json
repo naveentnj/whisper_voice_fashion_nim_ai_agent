@@ -1,0 +1,174 @@
+{
+  "timestamp": "2026-05-29T14:59:04.924751",
+  "test_cases": 5,
+  "products_count": 50,
+  "summary": {
+    "Meta Llama 3.1 70B Instruct": {
+      "success_rate": "3/5",
+      "tool_accuracy": "3/5",
+      "avg_latency": "91.5s",
+      "errors": 2
+    },
+    "Meta Llama 3.3 70B Instruct": {
+      "success_rate": "5/5",
+      "tool_accuracy": "4/5",
+      "avg_latency": "32.7s",
+      "errors": 0
+    }
+  },
+  "recommended_model": "Meta Llama 3.3 70B Instruct",
+  "detailed_results": {
+    "Meta Llama 3.1 70B Instruct": [
+      {
+        "test_id": 1,
+        "description": "Browse entire catalog",
+        "input": "What are the fashion products available in your store?",
+        "expected_tool": "search_fashion_catalog",
+        "tool_calls": [
+          "search_fashion_catalog(query='', category='', max_price=10000.0)"
+        ],
+        "used_expected_tool": true,
+        "response": "I don't have enough information to execute any action, as the user's input does not contain any specific action related to the shopping cart. The user is asking about the available fashion products, and the stylist has provided a list of products. I will wait for further instructions or user input to determine the next course of action.",
+        "status": "SUCCESS",
+        "error": null,
+        "latency_s": 57.62
+      },
+      {
+        "test_id": 2,
+        "description": "Category + price filter",
+        "input": "Show me some premium watches under $300",
+        "expected_tool": "search_fashion_catalog",
+        "tool_calls": [
+          "search_fashion_catalog(query='premium watch', category='watch', max_price=300.0)",
+          "search_fashion_catalog(query='', category='watch', max_price=300.0)"
+        ],
+        "used_expected_tool": true,
+        "response": "I don't have enough information to execute any action on the shopping cart. The user's input is a query about premium watches, but it doesn't contain any action related to the shopping cart.",
+        "status": "SUCCESS",
+        "error": null,
+        "latency_s": 260.31
+      },
+      {
+        "test_id": 3,
+        "description": "Keyword search (leather jacket)",
+        "input": "I'm looking for a nice leather jacket, do you have any?",
+        "expected_tool": "search_fashion_catalog",
+        "tool_calls": [
+          "search_fashion_catalog(query='leather jacket', category='jacket', max_price=10000.0)",
+          "search_fashion_catalog(query='', category='jacket', max_price=10000.0)"
+        ],
+        "used_expected_tool": true,
+        "response": "",
+        "status": "ERROR",
+        "error": "litellm.RateLimitError: RateLimitError: Nvidia_nimException - Error code: 429 - {'status': 429, 'title': 'Too Many Requests'}",
+        "latency_s": 103.24
+      },
+      {
+        "test_id": 4,
+        "description": "Cart add action",
+        "input": "Add the Classic Linen shirt to my cart please",
+        "expected_tool": "modify_user_shopping_cart",
+        "tool_calls": [
+          "search_fashion_catalog(query='Classic Linen shirt', category='', max_price=10000.0)",
+          "modify_cart(action='add', product_id='shirt_classic_linen', qty=1)"
+        ],
+        "used_expected_tool": false,
+        "response": "I've added the Classic Linen shirt to your cart.",
+        "status": "SUCCESS",
+        "error": null,
+        "latency_s": 34.31
+      },
+      {
+        "test_id": 5,
+        "description": "Complex multi-category recommendation",
+        "input": "Can you recommend a complete outfit \u2014 shirt, pants, and shoes \u2014 for a formal dinner?",
+        "expected_tool": "search_fashion_catalog",
+        "tool_calls": [],
+        "used_expected_tool": false,
+        "response": "",
+        "status": "ERROR",
+        "error": "litellm.RateLimitError: RateLimitError: Nvidia_nimException - Error code: 429 - {'status': 429, 'title': 'Too Many Requests'}",
+        "latency_s": 1.99
+      }
+    ],
+    "Meta Llama 3.3 70B Instruct": [
+      {
+        "test_id": 1,
+        "description": "Browse entire catalog",
+        "input": "What are the fashion products available in your store?",
+        "expected_tool": "search_fashion_catalog",
+        "tool_calls": [
+          "search_fashion_catalog(query='', category='', max_price=10000.0)"
+        ],
+        "used_expected_tool": true,
+        "response": "We have the Breeze Linen Summer Shirt, Downtown Tailored Chinos, Classic Tailored Oxford Shirt, and Metropolitan Wool-Blend Trousers available in our store. You can consider pairing the Breeze Linen Summer Shirt with the Downtown Tailored Chinos for a stylish and comfortable outfit.",
+        "status": "SUCCESS",
+        "error": null,
+        "latency_s": 49.18
+      },
+      {
+        "test_id": 2,
+        "description": "Category + price filter",
+        "input": "Show me some premium watches under $300",
+        "expected_tool": "search_fashion_catalog",
+        "tool_calls": [
+          "search_fashion_catalog(query='', category='watch', max_price=300.0)",
+          "modify_cart(action='add', product_id='watch_1', qty=1)"
+        ],
+        "used_expected_tool": true,
+        "response": "You have added the Ascent Minimalist Chronograph to your cart, would you like to add the Apex Smart Active Watch or proceed to checkout?",
+        "status": "SUCCESS",
+        "error": null,
+        "latency_s": 30.12
+      },
+      {
+        "test_id": 3,
+        "description": "Keyword search (leather jacket)",
+        "input": "I'm looking for a nice leather jacket, do you have any?",
+        "expected_tool": "search_fashion_catalog",
+        "tool_calls": [
+          "search_fashion_catalog(query='leather jacket', category='jacket', max_price=10000.0)"
+        ],
+        "used_expected_tool": true,
+        "response": "We have a variety of leather jackets available, including the 'Biker Leather Jacket' and the 'Luxury Sheepskin Leather Jacket', both made from high-quality leather and designed to provide a stylish and comfortable fit. Which one of these jackets would you like to add to your cart? Please let me know, and I'll be happy to assist you.",
+        "status": "SUCCESS",
+        "error": null,
+        "latency_s": 21.15
+      },
+      {
+        "test_id": 4,
+        "description": "Cart add action",
+        "input": "Add the Classic Linen shirt to my cart please",
+        "expected_tool": "modify_user_shopping_cart",
+        "tool_calls": [
+          "search_fashion_catalog(query='Classic Linen shirt', category='shirt', max_price=10000.0)",
+          "modify_cart(action='add', product_id='shirt_1', qty=1)"
+        ],
+        "used_expected_tool": false,
+        "response": "I've added the Classic Linen shirt to your cart.",
+        "status": "SUCCESS",
+        "error": null,
+        "latency_s": 5.44
+      },
+      {
+        "test_id": 5,
+        "description": "Complex multi-category recommendation",
+        "input": "Can you recommend a complete outfit \u2014 shirt, pants, and shoes \u2014 for a formal dinner?",
+        "expected_tool": "search_fashion_catalog",
+        "tool_calls": [
+          "search_fashion_catalog(query='formal', category='shirt', max_price=500.0)",
+          "search_fashion_catalog(query='formal dinner', category='shirt', max_price=1000.0)",
+          "search_fashion_catalog(query='', category='shirt', max_price=1000.0)",
+          "modify_cart(action='add', product_id='shirt_1', qty=1)",
+          "modify_cart(action='add', product_id='Elite_Mulberry_Silk_Shirt', qty=1)",
+          "modify_cart(action='add', product_id='Tuxedo_Stripe_Formal_Pants', qty=1)"
+        ],
+        "used_expected_tool": true,
+        "response": "For a formal dinner, consider the Elite Mulberry Silk Shirt, paired with the Tuxedo Stripe Formal Pants, and completed with the Black Leather Oxfords for a sophisticated and elegant look.",
+        "status": "SUCCESS",
+        "error": null,
+        "latency_s": 57.49
+      }
+    ]
+  }
+}

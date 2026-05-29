@@ -15,6 +15,10 @@ export default function VoiceWidget() {
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const audioContextRef = useRef(null);
+  const micStreamRef = useRef(null);
+  const scriptProcessorRef = useRef(null);
+  const rawPcmChunksRef = useRef([]);
   const canvasRef = useRef(null);
   const audioRef = useRef(null);
 
@@ -45,29 +49,97 @@ export default function VoiceWidget() {
     return () => cancelAnimationFrame(animationFrameId);
   }, [isRecording]);
 
+  // WAV encoder helper — resamples from nativeRate to 16kHz
+  const encodeWAV = (chunks, nativeRate) => {
+    const targetRate = 16000;
+    let totalLength = 0;
+    for (const chunk of chunks) totalLength += chunk.length;
+    const merged = new Float32Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      merged.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    // Resample if needed
+    let samples = merged;
+    if (nativeRate !== targetRate) {
+      const ratio = targetRate / nativeRate;
+      const newLength = Math.round(totalLength * ratio);
+      samples = new Float32Array(newLength);
+      for (let i = 0; i < newLength; i++) {
+        const srcIdx = i / ratio;
+        const lo = Math.floor(srcIdx);
+        const hi = Math.min(lo + 1, totalLength - 1);
+        const frac = srcIdx - lo;
+        samples[i] = merged[lo] * (1 - frac) + merged[hi] * frac;
+      }
+    }
+
+    const int16 = new Int16Array(samples.length);
+    for (let i = 0; i < samples.length; i++) {
+      const s = Math.max(-1, Math.min(1, samples[i]));
+      int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+    }
+
+    const buffer = new ArrayBuffer(44 + int16.length * 2);
+    const view = new DataView(buffer);
+    const writeStr = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+
+    writeStr(0, 'RIFF');
+    view.setUint32(4, 36 + int16.length * 2, true);
+    writeStr(8, 'WAVE');
+    writeStr(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, targetRate, true);
+    view.setUint32(28, targetRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeStr(36, 'data');
+    view.setUint32(40, int16.length * 2, true);
+
+    const uint8 = new Uint8Array(buffer);
+    uint8.set(new Uint8Array(int16.buffer), 44);
+    return new Blob([uint8], { type: 'audio/wav' });
+  };
+
   const handleMicClick = async () => {
     if (isRecording) {
-      mediaRecorderRef.current?.stop();
+      // STOP recording
       setIsRecording(false);
       setStatus('Processing...');
+      scriptProcessorRef.current?.disconnect();
+      micStreamRef.current?.getTracks().forEach(t => t.stop());
+
+      const nativeRate = audioContextRef.current?.sampleRate || 48000;
+      audioContextRef.current?.close();
+
+      const wavBlob = encodeWAV(rawPcmChunksRef.current, nativeRate);
+      rawPcmChunksRef.current = [];
+      await sendAudioToAPI(wavBlob);
     } else {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const mediaRecorder = new MediaRecorder(stream);
-        mediaRecorderRef.current = mediaRecorder;
-        audioChunksRef.current = [];
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true }
+        });
+        micStreamRef.current = stream;
+        // Use browser's native sample rate — do NOT force 16kHz
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        audioContextRef.current = audioCtx;
+        const source = audioCtx.createMediaStreamSource(stream);
+        const processor = audioCtx.createScriptProcessor(4096, 1, 1);
+        scriptProcessorRef.current = processor;
+        rawPcmChunksRef.current = [];
 
-        mediaRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0) audioChunksRef.current.push(event.data);
+        processor.onaudioprocess = (e) => {
+          rawPcmChunksRef.current.push(new Float32Array(e.inputBuffer.getChannelData(0)));
         };
 
-        mediaRecorder.onstop = async () => {
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          await sendAudioToAPI(audioBlob);
-          stream.getTracks().forEach(track => track.stop());
-        };
+        source.connect(processor);
+        processor.connect(audioCtx.destination);
 
-        mediaRecorder.start();
         setIsRecording(true);
         setStatus('Listening...');
       } catch (err) {
@@ -79,7 +151,7 @@ export default function VoiceWidget() {
 
   const sendAudioToAPI = async (audioBlob) => {
     const formData = new FormData();
-    formData.append('file', audioBlob, 'voice_input.webm');
+    formData.append('file', audioBlob, 'voice_input.wav');
     formData.append('cart', JSON.stringify([])); // Empty cart for now, could be lifted to context
     formData.append('asr_mode', asrMode);
     formData.append('tts_mode', ttsMode);
