@@ -100,3 +100,35 @@ code {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+/* Responsive Utilities */
+.responsive-catalog {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 2rem;
+}
+
+.responsive-product {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+}
+
+@media (max-width: 850px) {
+  .responsive-catalog {
+    grid-template-columns: 1fr;
+  }
+  .responsive-catalog > aside {
+    position: relative !important;
+    top: 0 !important;
+  }
+  
+  .responsive-product {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  
+  .responsive-product img {
+    min-height: 300px !important;
+  }
+}

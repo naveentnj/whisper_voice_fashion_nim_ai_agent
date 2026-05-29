@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import axios from 'axios';
 import { ShoppingCart } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const CATEGORIES = [
   { id: 'all', label: 'All Products', icon: 'fa-border-all' },
@@ -16,6 +17,7 @@ export default function Catalog() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchProducts(activeCategory);
@@ -26,7 +28,7 @@ export default function Catalog() {
     try {
       const url = cat === 'all' ? '/api/products' : `/api/products?category=${cat}`;
       const res = await axios.get(url);
-      setProducts(res.data.products || []);
+      setProducts(Array.isArray(res.data) ? res.data : res.data.products || []);
     } catch (err) {
       console.error('Error fetching products:', err);
     }
@@ -41,7 +43,7 @@ export default function Catalog() {
         <div style={{ width: '50px', height: '3px', background: 'var(--primary)', marginTop: '0.8rem', borderRadius: '20px' }} />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '2rem' }}>
+      <div className="responsive-catalog">
         {/* Sidebar */}
         <aside style={{
           background: 'var(--bg-card)',
@@ -103,8 +105,10 @@ export default function Catalog() {
                     overflow: 'hidden',
                     backdropFilter: 'blur(12px)',
                     display: 'flex',
-                    flexDirection: 'column'
+                    flexDirection: 'column',
+                    cursor: 'pointer'
                   }}
+                  onClick={() => navigate(`/product/${p.id}`)}
                 >
                   <div style={{ height: '260px', position: 'relative', overflow: 'hidden', background: '#0c0c10' }}>
                     <motion.img 
@@ -131,6 +135,11 @@ export default function Catalog() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
                       <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', fontWeight: 800 }}>${p.price.toFixed(2)}</span>
                       <motion.button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // In a full app, dispatch to a cart context here
+                          alert(`Added ${p.name} to cart.`);
+                        }}
                         whileHover={{ background: 'var(--primary)', borderColor: 'var(--primary)', color: '#fff', boxShadow: '0 0 15px var(--primary-glow)', scale: 1.1 }}
                         whileTap={{ scale: 0.95 }}
                         style={{

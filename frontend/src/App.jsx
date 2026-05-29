@@ -1,14 +1,26 @@
 import React, { useState } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import { motion, useScroll } from 'motion/react';
 import './index.css';
 
-// Components (We will create these next)
+// Components
 import Header from './components/Header';
 import Hero from './components/Hero';
 import Categories from './components/Categories';
 import Catalog from './components/Catalog';
 import VoiceWidget from './components/VoiceWidget';
 import CartSidebar from './components/CartSidebar';
+import ProductPage from './components/ProductPage';
+
+function Home() {
+  return (
+    <main style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 2rem' }}>
+      <Hero />
+      <Categories />
+      <Catalog />
+    </main>
+  );
+}
 
 function App() {
   const { scrollYProgress } = useScroll();
@@ -39,11 +51,10 @@ function App() {
 
       <Header onOpenCart={() => setIsCartOpen(true)} />
       
-      <main style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 2rem' }}>
-        <Hero />
-        <Categories />
-        <Catalog />
-      </main>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/product/:id" element={<ProductPage />} />
+      </Routes>
 
       <CartSidebar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
       <VoiceWidget />

@@ -177,7 +177,8 @@ def create_crew_system() -> Crew:
     stylist_agent = Agent(
         role="Elite Personal Fashion Consultant",
         goal="Browse the catalog to recommend premium clothes, accessories, and styling tips that perfectly match the user's inquiry.",
-        backstory="An elegant, sophisticated personal stylist with a deep eye for design, fit, and premium styles. You talk elegantly about fabrics, tailoring, coordination, and help the user find the perfect item.",
+        backstory="""An elegant, sophisticated personal stylist with a deep eye for design, fit, and premium styles. 
+        You talk elegantly about fabrics, tailoring, coordination, and help the user find the perfect item.""",
         tools=[search_fashion_catalog],
         llm=llm,
         verbose=True,
@@ -188,7 +189,8 @@ def create_crew_system() -> Crew:
     order_agent = Agent(
         role="Meticulous Order Operations Manager",
         goal="Perfectly manage the shopping cart actions (adding, removing, clearing) and process final checkouts.",
-        backstory="An extremely precise, reliable shopping assistant who is fast and strictly executes cart modification requests and order placement. You always double-check product availability and confirm actions in the cart.",
+        backstory="""An extremely precise, reliable shopping assistant who is fast and strictly executes cart modification requests and order placement. 
+        You always double-check product availability and confirm actions in the cart.""",
         tools=[modify_user_shopping_cart],
         llm=llm,
         verbose=True,

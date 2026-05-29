@@ -121,3 +121,23 @@ To select the most robust LLM for the styling and catalog search agents under NV
 ### 🏆 Evaluation Verdict
 **Meta Llama 3.3 70B Instruct** is the clear and absolute winner. Under identical conditions, Llama 3.3 demonstrated exceptional speed, zero API failures, and perfect agent reliability. Consequently, **VALENTI AI has been upgraded to Llama 3.3 70B Instruct** as its default agentic brain!
 
+---
+
+## Semantic Vector Search with Turbovec
+
+Valenti AI now features semantic vector search for product discovery, powered by `sentence-transformers` and Google's `turbovec`. Instead of just keyword matching, the AI consultant understands the abstract *meaning* of your requests and retrieves products using dense vector embeddings in MongoDB.
+
+### 🌟 3 Examples of Semantic Discovery
+
+1. **Abstract Vibe Request**
+   - **User Input:** *"I need something classy and lightweight for a summer evening dinner by the beach."*
+   - **Turbovec Result:** It doesn't look for the words "summer" or "beach". Instead, it instantly surfaces the **Mulberry Silk Shirt** and **Linen Summer Pants** because their embedded descriptions naturally align with lightweight, classy, and breathable materials.
+
+2. **Functional Intent Request**
+   - **User Input:** *"Find me something to keep me warm during a freezing winter road trip."*
+   - **Turbovec Result:** The agent semantically matches the query to the **Luxury Sheepskin Jacket** and **Cashmere Overcoat**, bypassing standard shirts or accessories entirely.
+
+3. **Style Profile Request**
+   - **User Input:** *"I want a timepiece that screams old-school luxury but isn't overly flashy."*
+   - **Turbovec Result:** The vector index perfectly aligns "old-school luxury" with the **Vintage Chronograph Watch**, ranking it at the absolute top of the results without needing exact word overlaps.
+

@@ -13,6 +13,13 @@ load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 from pymongo import MongoClient, DESCENDING
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
+import numpy as np
+
+# Lazy loaded vector index
+_vector_index = None
+_embedding_model = None
+_int_to_str_id = {}
+_str_to_int_id = {}
 
 # ─────────────────────────────────────────────
 # Connection Configuration
@@ -169,8 +176,81 @@ def get_products_from_mongo(category: str = "", query: str = "",
             {"name":        {"$regex": query, "$options": "i"}},
             {"description": {"$regex": query, "$options": "i"}},
         ]
-    docs = col.find(filt, {"_id": 0})
+    docs = col.find(filt, {"_id": 0, "embedding": 0})
     return list(docs)
+
+def init_vector_index():
+    """Fetch embeddings from MongoDB and build turbovec index."""
+    global _vector_index, _embedding_model, _int_to_str_id, _str_to_int_id
+    from turbovec import IdMapIndex
+    from sentence_transformers import SentenceTransformer
+    
+    print("[DB] Initializing vector index...")
+    if _embedding_model is None:
+        _embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+        
+    docs = list(products_col().find({"embedding": {"$exists": True}}))
+    if not docs:
+        print("[DB] No embeddings found. Vector index is empty.")
+        return
+
+    dim = len(docs[0]["embedding"])
+    _vector_index = IdMapIndex(dim=dim, bit_width=4)
+    
+    vectors = []
+    ids = []
+    for i, doc in enumerate(docs):
+        int_id = np.uint64(i + 1)
+        str_id = doc["id"]
+        _int_to_str_id[int_id] = str_id
+        _str_to_int_id[str_id] = int_id
+        
+        vectors.append(doc["embedding"])
+        ids.append(int_id)
+        
+    _vector_index.add_with_ids(np.array(vectors, dtype=np.float32), np.array(ids, dtype=np.uint64))
+    print(f"[DB] Vector index initialized with {len(docs)} products.")
+
+def vector_search_products(query: str, top_k: int = 5, category: str = "", max_price: float = 999999) -> List[Dict]:
+    """Search products using semantic vector search and pre-filtering."""
+    global _vector_index, _embedding_model, _int_to_str_id
+    
+    if _vector_index is None:
+        init_vector_index()
+        
+    if _vector_index is None:
+        # Fallback to text search if initialization failed
+        return get_products_from_mongo(category, query, max_price)
+        
+    query_vector = _embedding_model.encode(query)
+    
+    # Pre-filtering: get allowed int ids based on category and price
+    filt = {"price": {"$lte": max_price}, "embedding": {"$exists": True}}
+    if category:
+        filt["category"] = category
+        
+    allowed_docs = list(products_col().find(filt, {"id": 1}))
+    allowed_str_ids = {doc["id"] for doc in allowed_docs}
+    allowed_int_ids = np.array([_str_to_int_id[sid] for sid in allowed_str_ids if sid in _str_to_int_id], dtype=np.uint64)
+    
+    if len(allowed_int_ids) == 0:
+        return []
+
+    # Search the vector index
+    scores, int_ids = _vector_index.search(np.array([query_vector], dtype=np.float32), k=top_k, allowlist=allowed_int_ids)
+    
+    # Retrieve full documents from MongoDB
+    matched_str_ids = [_int_to_str_id[iid] for iid in int_ids[0]]
+    
+    # Fetch in order of relevance
+    pipeline = [
+        {"$match": {"id": {"$in": matched_str_ids}}},
+        {"$addFields": {"__order": {"$indexOfArray": [matched_str_ids, "$id"]}}},
+        {"$sort": {"__order": 1}},
+        {"$project": {"_id": 0, "embedding": 0, "__order": 0}}
+    ]
+    
+    return list(products_col().aggregate(pipeline))
 
 
 # ─────────────────────────────────────────────
