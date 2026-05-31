@@ -29,9 +29,17 @@ _active_cart: Dict[str, int] = {}
 _action_log: List[str] = []
 
 def get_product_by_id(product_id: str) -> Dict[str, Any]:
+    # 1. Exact match by ID or Name
     for p in PRODUCTS_CATALOG:
         if p["id"].lower() == product_id.lower() or p["name"].lower() == product_id.lower():
             return p
+            
+    # 2. Dynamic partial match by Name
+    # If the agent says "leather jacket", it will match "Biker Leather Jacket"
+    for p in PRODUCTS_CATALOG:
+        if product_id.lower() in p["name"].lower() or product_id.lower() in p["id"].lower():
+            return p
+            
     return {}
 
 # -------------------------------------------------------------

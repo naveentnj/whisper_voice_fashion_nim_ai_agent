@@ -86,6 +86,13 @@ def products_col():
     return get_db()["products"]
 
 
+def users_col():
+    return get_db()["users"]
+
+def carts_col():
+    return get_db()["carts"]
+
+
 # ─────────────────────────────────────────────
 # Orders
 # ─────────────────────────────────────────────
@@ -139,6 +146,75 @@ def get_sessions(limit: int = 50) -> List[Dict]:
     """Return recent voice session logs."""
     docs = sessions_col().find({}, {"_id": 0}).sort("created_at", DESCENDING).limit(limit)
     return list(docs)
+
+
+# ─────────────────────────────────────────────
+# User Authentication (simple hash-based)
+# ─────────────────────────────────────────────
+import hashlib
+
+def _hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def register_user(username: str, password: str) -> Dict[str, Any]:
+    """Register a new user. Returns user doc or error."""
+    col = users_col()
+    if col.find_one({"username": username}):
+        return {"error": "User already exists"}
+    doc = {
+        "username": username,
+        "password_hash": _hash_password(password),
+        "created_at": datetime.now(UTC),
+    }
+    col.insert_one(doc)
+    return {"username": username, "status": "created"}
+
+def login_user(username: str, password: str) -> Dict[str, Any]:
+    """Validate credentials. Returns user info or error."""
+    col = users_col()
+    user = col.find_one({"username": username})
+    if not user:
+        return {"error": "User not found"}
+    if user["password_hash"] != _hash_password(password):
+        return {"error": "Invalid password"}
+    return {"username": username, "status": "ok"}
+
+def seed_default_users():
+    """Create default users if they don't exist."""
+    defaults = [
+        {"username": "kevin1",   "password": "4r3rbio"},
+        {"username": "eleven2",  "password": "9y7gf487"},
+    ]
+    for u in defaults:
+        result = register_user(u["username"], u["password"])
+        if result.get("status") == "created":
+            print(f"[DB] Seeded user: {u['username']}")
+        else:
+            print(f"[DB] User already exists: {u['username']}")
+
+
+# ─────────────────────────────────────────────
+# Cart Persistence (per-user, stored in MongoDB)
+# ─────────────────────────────────────────────
+
+def get_user_cart(username: str) -> Dict[str, int]:
+    """Load the user's persisted cart from MongoDB."""
+    doc = carts_col().find_one({"username": username})
+    if doc:
+        return doc.get("items", {})
+    return {}
+
+def save_user_cart(username: str, cart_items: Dict[str, int]) -> None:
+    """Upsert the user's cart to MongoDB."""
+    carts_col().update_one(
+        {"username": username},
+        {"$set": {"items": cart_items, "updated_at": datetime.now(UTC)}},
+        upsert=True,
+    )
+
+def clear_user_cart(username: str) -> None:
+    """Clear a user's cart."""
+    carts_col().delete_one({"username": username})
 
 
 # ─────────────────────────────────────────────

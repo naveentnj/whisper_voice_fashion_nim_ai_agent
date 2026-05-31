@@ -111,9 +111,18 @@ def transcribe_audio(audio_path: str, mode: str = "online") -> str:
     - 'offline': Run Whisper-large-v3 locally on your GPU (requires loading weights).
     """
     if mode == "offline":
-        return _transcribe_offline(audio_path)
+        text = _transcribe_offline(audio_path)
     else:
-        return _transcribe_online(audio_path)
+        text = _transcribe_online(audio_path)
+        
+    # Filter common Whisper hallucinations on silence
+    lower_t = text.lower().strip()
+    hallucinations = ["thank you.", "thank you", "thanks for watching.", "thanks.", "you.", "am i?"]
+    if lower_t in hallucinations or len(lower_t) <= 1:
+        print("[ASR] Filtered out known Whisper silence hallucination.")
+        return ""
+        
+    return text
 
 def _transcribe_online(audio_path: str) -> str:
     if not HF_API_KEY:

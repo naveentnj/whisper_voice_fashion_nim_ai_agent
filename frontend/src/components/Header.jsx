@@ -1,8 +1,24 @@
-import React from 'react';
-import { ShoppingBag, Wand2 } from 'lucide-react';
-import { motion } from 'motion/react';
+import React, { useState } from 'react';
+import { ShoppingBag, User, LogOut } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { useCart } from '../context/CartContext';
 
 export default function Header({ onOpenCart }) {
+  const { user, login, logout, loginError, cartCount } = useCart();
+  const [showLogin, setShowLogin] = useState(false);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    const ok = await login(username, password);
+    if (ok) {
+      setShowLogin(false);
+      setUsername('');
+      setPassword('');
+    }
+  };
+
   return (
     <header style={{
       position: 'sticky',
@@ -68,6 +84,47 @@ export default function Header({ onOpenCart }) {
             />
             <span style={{ color: 'var(--muted)' }}>Voice Agent Online</span>
           </div>
+
+          {/* User Auth Button */}
+          {user ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>
+                {user.username}
+              </span>
+              <motion.button
+                whileHover={{ scale: 1.1, color: 'var(--accent)' }}
+                whileTap={{ scale: 0.9 }}
+                onClick={logout}
+                title="Logout"
+                style={{
+                  background: 'none', border: 'none', color: 'var(--muted)',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center'
+                }}
+              >
+                <LogOut size={16} />
+              </motion.button>
+            </div>
+          ) : (
+            <motion.button
+              whileHover={{ y: -2, borderColor: 'var(--primary)', color: 'var(--primary)' }}
+              onClick={() => setShowLogin(true)}
+              style={{
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid var(--border)',
+                cursor: 'pointer',
+                color: 'var(--text)',
+                borderRadius: '24px',
+                padding: '0.4rem 0.8rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                fontSize: '0.75rem',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              <User size={14} /> Sign In
+            </motion.button>
+          )}
           
           <motion.button 
             whileHover={{ y: -2, boxShadow: '0 0 15px var(--primary-glow)', borderColor: 'var(--primary)', color: 'var(--primary)' }}
@@ -92,7 +149,7 @@ export default function Header({ onOpenCart }) {
               position: 'absolute',
               top: '-4px',
               right: '-4px',
-              background: 'var(--accent)',
+              background: cartCount > 0 ? 'var(--accent)' : 'var(--muted)',
               color: '#fff',
               fontSize: '0.65rem',
               fontWeight: 700,
@@ -103,10 +160,90 @@ export default function Header({ onOpenCart }) {
               alignItems: 'center',
               justifyContent: 'center',
               border: '2px solid var(--bg-deep)'
-            }}>0</span>
+            }}>{cartCount}</span>
           </motion.button>
         </div>
       </nav>
+
+      {/* Login Modal */}
+      <AnimatePresence>
+        {showLogin && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowLogin(false)}
+              style={{
+                position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
+                zIndex: 999, backdropFilter: 'blur(4px)'
+              }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              style={{
+                position: 'fixed', top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%)',
+                background: 'var(--bg-card)', border: '1px solid var(--border)',
+                borderRadius: '20px', padding: '2.5rem', width: '340px',
+                zIndex: 1000, backdropFilter: 'blur(20px)',
+                boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
+              }}
+            >
+              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1.4rem', marginBottom: '0.4rem' }}>
+                Welcome Back
+              </h3>
+              <p style={{ fontSize: '0.75rem', color: 'var(--muted)', marginBottom: '1.5rem' }}>
+                Sign in to your Valenti account
+              </p>
+              <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <input
+                  type="text"
+                  placeholder="Username"
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
+                  style={{
+                    padding: '0.7rem 1rem', borderRadius: '12px',
+                    border: '1px solid var(--border)', background: 'rgba(0,0,0,0.3)',
+                    color: 'var(--text)', fontSize: '0.85rem', outline: 'none',
+                    fontFamily: 'var(--font-sans)'
+                  }}
+                />
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  style={{
+                    padding: '0.7rem 1rem', borderRadius: '12px',
+                    border: '1px solid var(--border)', background: 'rgba(0,0,0,0.3)',
+                    color: 'var(--text)', fontSize: '0.85rem', outline: 'none',
+                    fontFamily: 'var(--font-sans)'
+                  }}
+                />
+                {loginError && (
+                  <p style={{ fontSize: '0.75rem', color: 'var(--accent)', textAlign: 'center' }}>{loginError}</p>
+                )}
+                <motion.button
+                  type="submit"
+                  whileHover={{ scale: 1.02, boxShadow: '0 0 20px var(--primary-glow)' }}
+                  whileTap={{ scale: 0.98 }}
+                  style={{
+                    padding: '0.8rem', borderRadius: '12px', border: 'none',
+                    background: 'linear-gradient(135deg, var(--primary), var(--accent))',
+                    color: '#fff', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer',
+                    fontFamily: 'var(--font-sans)'
+                  }}
+                >
+                  Sign In
+                </motion.button>
+              </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

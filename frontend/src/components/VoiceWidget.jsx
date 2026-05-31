@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, ChevronDown, Mic } from 'lucide-react';
 import axios from 'axios';
+import { useCart } from '../context/CartContext';
 
 export default function VoiceWidget() {
   const [minimized, setMinimized] = useState(false);
@@ -12,6 +13,7 @@ export default function VoiceWidget() {
   ]);
   const [asrMode, setAsrMode] = useState('online');
   const [ttsMode, setTtsMode] = useState('online');
+  const { cart } = useCart();
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -152,7 +154,7 @@ export default function VoiceWidget() {
   const sendAudioToAPI = async (audioBlob) => {
     const formData = new FormData();
     formData.append('file', audioBlob, 'voice_input.wav');
-    formData.append('cart', JSON.stringify([])); // Empty cart for now, could be lifted to context
+    formData.append('cart', JSON.stringify(cart));
     formData.append('asr_mode', asrMode);
     formData.append('tts_mode', ttsMode);
     formData.append('session_id', '');

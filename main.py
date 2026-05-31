@@ -44,7 +44,7 @@ os.makedirs(AUDIO_DIR, exist_ok=True)
 @app.on_event("startup")
 def startup_event():
     try:
-        from database import sync_products_to_mongo, ping_db, track_event
+        from database import sync_products_to_mongo, ping_db, track_event, seed_default_users
         status = ping_db()
         print(f"[DB] MongoDB status: {status['status']}")
         if status["status"] == "connected":
@@ -52,6 +52,7 @@ def startup_event():
                 prods = json.load(f)
             n = sync_products_to_mongo(prods)
             print(f"[DB] Synced {n} products to MongoDB")
+            seed_default_users()
             track_event("server_start", {"products_synced": n})
     except Exception as e:
         print(f"[DB] Startup sync skipped (MongoDB may not be running): {e}")
@@ -409,6 +410,67 @@ def model_status():
         },
         "offline_ready": (whisper_cached or local_whisper) and (omnivoice_cached or local_omnivoice),
     }
+
+
+# ─────────────────────────────────────────────────────────────────
+# Auth & Cart APIs
+# ─────────────────────────────────────────────────────────────────
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+class CartUpdateRequest(BaseModel):
+    username: str
+    product_id: str
+    quantity: int = 1
+
+class CartSaveRequest(BaseModel):
+    username: str
+    items: Dict[str, int]
+
+@app.post("/api/login")
+def api_login(req: LoginRequest):
+    """Authenticate a user against MongoDB."""
+    try:
+        from database import login_user
+        result = login_user(req.username, req.password)
+        if result.get("error"):
+            raise HTTPException(status_code=401, detail=result["error"])
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/cart/{username}")
+def api_get_cart(username: str):
+    """Load user's cart from MongoDB."""
+    try:
+        from database import get_user_cart
+        items = get_user_cart(username)
+        return {"username": username, "items": items}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/cart")
+def api_save_cart(req: CartSaveRequest):
+    """Save full cart state to MongoDB."""
+    try:
+        from database import save_user_cart
+        save_user_cart(req.username, req.items)
+        return {"status": "saved", "username": req.username, "items": req.items}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/cart/{username}")
+def api_clear_cart(username: str):
+    """Clear a user's cart."""
+    try:
+        from database import clear_user_cart
+        clear_user_cart(username)
+        return {"status": "cleared", "username": username}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ─────────────────────────────────────────────────────────────────

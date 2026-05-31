@@ -2,13 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import axios from 'axios';
-import { ArrowLeft, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Check } from 'lucide-react';
+import { useCart } from '../context/CartContext';
 
 export default function ProductPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [added, setAdded] = useState(false);
+  const { addToCart, user } = useCart();
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -95,7 +98,10 @@ export default function ProductPage() {
             whileTap={{ scale: 0.98 }}
             onClick={(e) => {
               e.stopPropagation();
-              alert(`Added ${product.name} to cart`);
+              if (!user) { alert('Please sign in first to add items to your cart.'); return; }
+              addToCart(product.id, 1);
+              setAdded(true);
+              setTimeout(() => setAdded(false), 1500);
             }}
             style={{ 
               background: 'linear-gradient(90deg, var(--primary), var(--accent))', 
@@ -104,7 +110,7 @@ export default function ProductPage() {
               justifyContent: 'center', gap: '1rem', cursor: 'pointer' 
             }}
           >
-            <ShoppingCart size={20} /> Add to Cart
+            <ShoppingCart size={20} /> {added ? 'Added!' : 'Add to Cart'}
           </motion.button>
 
           <p style={{ marginTop: '2rem', fontSize: '0.85rem', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

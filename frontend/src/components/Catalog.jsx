@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import axios from 'axios';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useCart } from '../context/CartContext';
 
 const CATEGORIES = [
   { id: 'all', label: 'All Products', icon: 'fa-border-all' },
@@ -18,6 +19,8 @@ export default function Catalog() {
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
   const navigate = useNavigate();
+  const { addToCart, user } = useCart();
+  const [addedId, setAddedId] = useState(null);
 
   useEffect(() => {
     fetchProducts(activeCategory);
@@ -137,18 +140,21 @@ export default function Catalog() {
                       <motion.button 
                         onClick={(e) => {
                           e.stopPropagation();
-                          // In a full app, dispatch to a cart context here
-                          alert(`Added ${p.name} to cart.`);
+                          if (!user) { alert('Please sign in first to add items to your cart.'); return; }
+                          addToCart(p.id, 1);
+                          setAddedId(p.id);
+                          setTimeout(() => setAddedId(null), 1200);
                         }}
                         whileHover={{ background: 'var(--primary)', borderColor: 'var(--primary)', color: '#fff', boxShadow: '0 0 15px var(--primary-glow)', scale: 1.1 }}
                         whileTap={{ scale: 0.95 }}
                         style={{
-                          background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)',
-                          color: 'var(--text)', width: '38px', height: '38px', borderRadius: '50%',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'
+                          background: addedId === p.id ? 'var(--primary)' : 'rgba(255,255,255,0.04)', border: '1px solid var(--border)',
+                          color: addedId === p.id ? '#fff' : 'var(--text)', width: '38px', height: '38px', borderRadius: '50%',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                          transition: 'background 0.3s'
                         }}
                       >
-                        <ShoppingCart size={16} />
+                        {addedId === p.id ? <Check size={16} /> : <ShoppingCart size={16} />}
                       </motion.button>
                     </div>
                   </div>
